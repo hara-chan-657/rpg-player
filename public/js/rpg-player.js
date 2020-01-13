@@ -210,7 +210,7 @@ function draw() {
         scrollPos = 0;
     }
 
-    //viewContext.drawImage(currentMapImg, startViewX, startViewY, viewCanvasWidth, viewCanvasHeight, 0, 0, viewCanvasWidth, viewCanvasHeight);
+    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
     viewContext.drawImage(currentMapImg, startViewX, startViewY);
     setTimeout("draw()", 3);
         
