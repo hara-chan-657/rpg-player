@@ -8,10 +8,20 @@
 var dummy;
 //１マップ大きさ
 var mapTipLength = 32;
+//表示キャンバス横
+var viewCanvasWidth = 736;
+//表示キャンバス縦
+var viewCanvasHeight = 480;
 //マップ行数
-var mapRowNum;
+var mapRowNum = viewCanvasWidth/mapTipLength;
 //マップ列数
-var mapColNum;
+var mapColNum = viewCanvasHeight/mapTipLength;
+//スクロール方向
+var scrollDir;
+//スクロールフラグ
+var scrollState = false; 
+//スクロール位置(1pxずつ増やしていく)
+var scrollPos = 0;
 //プロジェクトのマップオブジェクト用配列
 var mapObj = [];
 //プロジェクトのデータオブジェクト
@@ -20,6 +30,12 @@ var projectDataObj;
 var currrentMapObj = null;
 //現在選択中マップ名
 var currrentMapName;
+//現在選択中マップ画像
+var currentMapImg;
+//現在選択中マップ横
+var currentMapImgWidth;
+//現在選択中マップ縦
+var currentMapImgHeight;
 //描画開始位置X
 var startViewX = 0;
 //描画開始位置Y
@@ -86,6 +102,7 @@ document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, fals
 function setDefault() {
     loadJsonToObj();
     showStartProject();
+    draw();
 }
 
 //プロジェクトのjsonをすべてオブジェクトにロードする
@@ -113,13 +130,15 @@ function loadJsonToObj() {
 function showStartProject() {
     //スタートプロジェクトの読み込み
     var startMap = projectDataObj['startMap'];
-    var startMapImg = document.getElementById(startMap);
+    currentMapImg = document.getElementById(startMap);
 
     //表示キャンバスに描画
-    scrollCanvas.width = startMapImg.naturalWidth;
-    scrollCanvas.height = startMapImg.naturalHeight;
-    scrollContext.drawImage(startMapImg,0,0);
-    viewContext.drawImage(scrollCanvas,0,0);
+    currentMapImgWidth = currentMapImg.naturalWidth;
+    //scrollCanvas.width = currentMapImgWidth;
+    currentMapImgHeight = currentMapImg.naturalHeight;
+    //scrollCanvas.height = currentMapImgHeight;
+    //scrollContext.drawImage(currentMapImg,0,0);
+    viewContext.drawImage(currentMapImg,0,0);
 
 }
 
@@ -127,52 +146,74 @@ function keyDownHandler(evt) {
     console.log(evt.keyCode);
 }
 
-function keyUpHandler(evt) {
-    //スクロールキャンバスから、表示枠の分だけ、1pxずつ表示していく
-    //1マップ分スライドしたら、終わり
-    
-    var scrollDir;
-
+function keyUpHandler(evt) {    
     switch (evt.keyCode) {
         case 37: //左
-
+            scrollDir = 'left';
+            scrollState = true;
             break;
 
         case 38: //上
-
+            scrollDir = 'up';
+            scrollState = true;
             break;
 
         case 39: //右
             scrollDir = 'right';
+            scrollState = true;
             break;
 
         case 40: //下
+            scrollDir = 'down';
+            scrollState = true;
+            break;
+    }
+}
 
+function draw() {
+    switch (scrollState) {
+        //非スクロール中
+        case false:
+            switch (scrollDir) {
+                case 'right':
+
+                    break;
+            }
+            break;
+        
+        //スクロール中
+        case true:
+            //スクロールポジションを更新
+            scrollPos++;
+
+            switch (scrollDir) {
+                case 'left':   
+                        startViewX++;
+                    break;
+                case 'up':   
+                        startViewY++;
+                    break;
+                case 'right':   
+                        startViewX--;
+                    break;
+                case 'down':   
+                        startViewY--;
+                    break;
+            }
             break;
     }
 
-    var scrollState = false; 
-
-    draw();
-
-    function draw () {
-        switch (scrollState) {
-            case false:
-                switch (scrollDir) {
-                    case 'right':
-    
-                        break;
-                }
-                break;
-            
-            case true:
-
-                break;
-        }
-    
-
-        
-
-        for (i=0; i<)
+    //1マップチップ分進んだら、変数を初期化して終了
+    if (scrollPos == mapTipLength) {
+        //各種変数初期化
+        scrollState = false;
+        scrollPos = 0;
     }
+
+    //viewContext.drawImage(currentMapImg, startViewX, startViewY, viewCanvasWidth, viewCanvasHeight, 0, 0, viewCanvasWidth, viewCanvasHeight);
+    viewContext.drawImage(currentMapImg, startViewX, startViewY);
+    setTimeout("draw()", 3);
+        
 }
+
+
