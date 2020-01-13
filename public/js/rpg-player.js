@@ -101,6 +101,7 @@ document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, fals
 //デフォルト値設定
 function setDefault() {
     loadJsonToObj();
+    setCanvas();
     showStartProject();
     draw();
 }
@@ -124,6 +125,12 @@ function loadJsonToObj() {
     xhr.open('GET', url, false);
     xhr.send(null);
     projectDataObj = JSON.parse(xhr.responseText);
+}
+
+//キャンバスセッティング
+function setCanvas() {
+    viewCanvas.setAttribute('width', viewCanvasWidth);
+    viewCanvas.setAttribute('height', viewCanvasHeight);
 }
 
 //スタートプロジェクトを開く

@@ -17,7 +17,7 @@
     @endcomponent
 
     <canvas id="scrollCanvas" width="" height=""></canvas>
-    <canvas id="viewCanvas" width="736" height="480"></canvas>
+    <canvas id="viewCanvas"></canvas>
 
     <div id="projectsContainer">
         <p id="projectName">{{$project}}</p>
