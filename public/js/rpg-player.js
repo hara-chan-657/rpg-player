@@ -34,6 +34,8 @@ var currrentMapObj = null;
 var currrentMapName;
 //現在選択中マップ画像
 var currentMapImg;
+//メインキャラ画像配列;
+var mainCharaImgArray = [];
 //メインキャラ画像;
 var mainCharaImg;
 //メインキャラ現在位置X
@@ -41,7 +43,7 @@ var mainCharaPosX;
 //メインキャラ現在位置Y
 var mainCharaPosY;
 //メインキャラ向き
-var mainCharaDir;
+var mainCharaDir = 'down';
 //現在選択中マップ横
 var currentMapImgWidth;
 //現在選択中マップ縦
@@ -144,8 +146,19 @@ function loadProjectData() {
 
 //メインキャラクターをロードする
 function loadMainCharacter() {
-    mainCharaImg = new Image();
-    mainCharaImg.src = '/rpg-player/public/image/mainCharacter.png';
+    var mainCharaArray = [
+        '/rpg-player/public/image/mainCharacterLeft.png',
+        '/rpg-player/public/image/mainCharacterUp.png',
+        '/rpg-player/public/image/mainCharacterRight.png',
+        '/rpg-player/public/image/mainCharacterDown.png',
+    ]
+    for (i=0; i<mainCharaArray.length; i++) {
+        var imgObj = new Image();
+        imgObj.src = mainCharaArray[i];
+        mainCharaImgArray.push(imgObj);
+    }
+    //ロード時は下向きで表示
+    mainCharaImg = mainCharaImgArray[3];
 }
 
 //キャンバスセッティング
@@ -175,29 +188,37 @@ function drawMainCharacter() {
     viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
 }
 
-function keyDownHandler(evt) {
+function keyUpHandler(evt) {
     console.log(evt.keyCode);
 }
 
-function keyUpHandler(evt) {    
+function keyDownHandler(evt) {    
     switch (evt.keyCode) {
         case 37: //左
             scrollDir = 'left';
+            mainCharaDir = scrollDir;
+            mainCharaImg =  mainCharaImgArray[0];
             scrollState = true;
             break;
 
         case 38: //上
             scrollDir = 'up';
+            mainCharaDir = scrollDir;
+            mainCharaImg =  mainCharaImgArray[1];
             scrollState = true;
             break;
 
         case 39: //右
             scrollDir = 'right';
+            mainCharaDir = scrollDir;
+            mainCharaImg =  mainCharaImgArray[2];
             scrollState = true;
             break;
 
         case 40: //下
             scrollDir = 'down';
+            mainCharaDir = scrollDir;
+            mainCharaImg =  mainCharaImgArray[3];
             scrollState = true;
             break;
     }
@@ -221,18 +242,20 @@ function draw() {
 
             switch (scrollDir) {
                 case 'left':   
-                    mainCharaPosX++;
-                    break;
-                case 'up':   
-                    mainCharaPosY++;
-                    break;
-                case 'right':   
                     mainCharaPosX--;
                     break;
-                case 'down':   
+                case 'up':   
                     mainCharaPosY--;
                     break;
+                case 'right':   
+                    mainCharaPosX++;
+                    break;
+                case 'down':   
+                    mainCharaPosY++;
+                    break;
             }
+            //テスト用コード
+            console.log(mainCharaPosX + ':' + mainCharaPosY);
             break;
     }
 
@@ -244,7 +267,8 @@ function draw() {
     }
 
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-    viewContext.drawImage(currentMapImg, mainCharaPosX-viewCanvasHalfWidth, mainCharaPosY-viewCanvasHalfHeight);
+    //viewContext.drawImage(currentMapImg, mainCharaPosX-viewCanvasHalfWidth, mainCharaPosY-viewCanvasHalfHeight);
+    viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
     drawMainCharacter();
     setTimeout("draw()", 3);
         
