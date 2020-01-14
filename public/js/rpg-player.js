@@ -4,14 +4,16 @@
 ///////////////////////////////////////////////////////////////////////////////////////////
 
 //================================ 各種変数 ===============================================//
-//dummy
-var dummy;
 //１マップ大きさ
 var mapTipLength = 32;
 //表示キャンバス横
 var viewCanvasWidth = 736;
 //表示キャンバス縦
 var viewCanvasHeight = 480;
+//表示キャンバス横半径
+var viewCanvasHalfWidth = (viewCanvasWidth - mapTipLength) / 2;
+//表示キャンバス縦半径
+var viewCanvasHalfHeight = (viewCanvasHeight - mapTipLength) / 2;
 //マップ行数
 var mapRowNum = viewCanvasWidth/mapTipLength;
 //マップ列数
@@ -32,14 +34,18 @@ var currrentMapObj = null;
 var currrentMapName;
 //現在選択中マップ画像
 var currentMapImg;
+//メインキャラ画像;
+var mainCharaImg;
+//メインキャラ現在位置X
+var mainCharaPosX;
+//メインキャラ現在位置Y
+var mainCharaPosY;
+//メインキャラ向き
+var mainCharaDir;
 //現在選択中マップ横
 var currentMapImgWidth;
 //現在選択中マップ縦
 var currentMapImgHeight;
-//描画開始位置X
-var startViewX = 0;
-//描画開始位置Y
-var startViewY = 0;
 
 
 //================================ 各種エレメント ===============================================//
@@ -101,6 +107,8 @@ document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, fals
 //デフォルト値設定
 function setDefault() {
     loadJsonToObj();
+    loadProjectData();
+    loadMainCharacter();
     setCanvas();
     showStartProject();
     draw();
@@ -127,6 +135,19 @@ function loadJsonToObj() {
     projectDataObj = JSON.parse(xhr.responseText);
 }
 
+//プロジェクトデータをロードする
+function loadProjectData() {
+    //スタートポジションをロード
+    mainCharaPosX = projectDataObj['startPosX'] * mapTipLength;
+    mainCharaPosY = projectDataObj['startPosY'] * mapTipLength;
+}
+
+//メインキャラクターをロードする
+function loadMainCharacter() {
+    mainCharaImg = new Image();
+    mainCharaImg.src = '/rpg-player/public/image/mainCharacter.png';
+}
+
 //キャンバスセッティング
 function setCanvas() {
     viewCanvas.setAttribute('width', viewCanvasWidth);
@@ -147,6 +168,11 @@ function showStartProject() {
     //scrollContext.drawImage(currentMapImg,0,0);
     viewContext.drawImage(currentMapImg,0,0);
 
+}
+
+//メインキャラクターを表示する
+function drawMainCharacter() {
+    viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
 }
 
 function keyDownHandler(evt) {
@@ -195,16 +221,16 @@ function draw() {
 
             switch (scrollDir) {
                 case 'left':   
-                        startViewX++;
+                    mainCharaPosX++;
                     break;
                 case 'up':   
-                        startViewY++;
+                    mainCharaPosY++;
                     break;
                 case 'right':   
-                        startViewX--;
+                    mainCharaPosX--;
                     break;
                 case 'down':   
-                        startViewY--;
+                    mainCharaPosY--;
                     break;
             }
             break;
@@ -218,7 +244,8 @@ function draw() {
     }
 
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-    viewContext.drawImage(currentMapImg, startViewX, startViewY);
+    viewContext.drawImage(currentMapImg, mainCharaPosX-viewCanvasHalfWidth, mainCharaPosY-viewCanvasHalfHeight);
+    drawMainCharacter();
     setTimeout("draw()", 3);
         
 }
