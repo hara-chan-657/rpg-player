@@ -198,41 +198,59 @@ function keyDownHandler(evt) {
             scrollDir = 'left';
             mainCharaDir = scrollDir;
             mainCharaImg =  mainCharaImgArray[0];
-            scrollState = true;
             break;
 
         case 38: //上
             scrollDir = 'up';
             mainCharaDir = scrollDir;
             mainCharaImg =  mainCharaImgArray[1];
-            scrollState = true;
             break;
 
         case 39: //右
             scrollDir = 'right';
             mainCharaDir = scrollDir;
             mainCharaImg =  mainCharaImgArray[2];
-            scrollState = true;
             break;
 
         case 40: //下
             scrollDir = 'down';
             mainCharaDir = scrollDir;
             mainCharaImg =  mainCharaImgArray[3];
-            scrollState = true;
             break;
     }
+    var res = checkStartMoveEvent();
+
+    if (res) {
+        scrollState = true;
+    }
+}
+
+//動き始めのイベントチェック
+function checkStartMoveEvent() {
+    //スクロール方向がマップ外でないかチェック
+    switch (scrollDir) {
+        case 'left':
+            if (mainCharaPosX == 0) return false;
+            break;
+        case 'up':   
+            if (mainCharaPosY == 0) return false;
+            break;
+        case 'right':   
+            if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+            break;
+        case 'down':   
+            if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+            break;
+    }
+    
+    return true;
 }
 
 function draw() {
     switch (scrollState) {
         //非スクロール中
         case false:
-            switch (scrollDir) {
-                case 'right':
 
-                    break;
-            }
             break;
         
         //スクロール中
