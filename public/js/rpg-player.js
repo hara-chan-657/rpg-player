@@ -172,6 +172,7 @@ function showStartProject() {
     //スタートプロジェクトの読み込み
     var startMap = projectDataObj['startMap'];
     currentMapImg = document.getElementById(startMap);
+    currrentMapObj =  mapObj[startMap];
 
     //表示キャンバスに描画
     currentMapImgWidth = currentMapImg.naturalWidth;
@@ -218,31 +219,56 @@ function keyDownHandler(evt) {
             mainCharaImg =  mainCharaImgArray[3];
             break;
     }
-    var res = checkStartMoveEvent();
-
-    if (res) {
-        scrollState = true;
+    //キー押下の瞬間が、キャラ移動中でなければ、移動開始時イベントチェック
+    if (mainCharaPosY%mapTipLength == 0 && mainCharaPosX%mapTipLength == 0) {
+        if(checkStartMoveEvent()) {
+            scrollState = true;
+        }
     }
 }
 
 //動き始めのイベントチェック
+//戻り値:bool（false→動かない、true→動く）
 function checkStartMoveEvent() {
     //スクロール方向がマップ外でないかチェック
     switch (scrollDir) {
         case 'left':
+            //マップ外でないかチェック
             if (mainCharaPosX == 0) return false;
+            //通りぬけかどうかチェック
+            var nextCellY = mainCharaPosY/mapTipLength;
+            var nextCellX = mainCharaPosX/mapTipLength-1;
+            var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
+            if ( maptiptype != 3) return false;
             break;
-        case 'up':   
+        case 'up':  
+            //マップ外でないかチェック 
             if (mainCharaPosY == 0) return false;
+            //通りぬけかどうかチェック
+            var nextCellY = mainCharaPosY/mapTipLength-1;
+            var nextCellX = mainCharaPosX/mapTipLength;
+            var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
+            if (maptiptype != 3) return false;
             break;
-        case 'right':   
+        case 'right':  
+            //マップ外でないかチェック 
             if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+            //通りぬけかどうかチェック
+            var nextCellY = mainCharaPosY/mapTipLength;
+            var nextCellX = mainCharaPosX/mapTipLength+1;
+            var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
+            if (maptiptype != 3) return false;
             break;
-        case 'down':   
+        case 'down':
+            //マップ外でないかチェック 
             if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+            //通りぬけかどうかチェック
+            var nextCellY = mainCharaPosY/mapTipLength+1;
+            var nextCellX = mainCharaPosX/mapTipLength;
+            var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
+            if (maptiptype != 3) return false;
             break;
     }
-    
     return true;
 }
 
