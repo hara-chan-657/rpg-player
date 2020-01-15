@@ -193,38 +193,38 @@ function keyUpHandler(evt) {
     console.log(evt.keyCode);
 }
 
-function keyDownHandler(evt) {    
-    switch (evt.keyCode) {
-        case 37: //左
-            scrollDir = 'left';
-            mainCharaDir = scrollDir;
-            mainCharaImg =  mainCharaImgArray[0];
-            break;
-
-        case 38: //上
-            scrollDir = 'up';
-            mainCharaDir = scrollDir;
-            mainCharaImg =  mainCharaImgArray[1];
-            break;
-
-        case 39: //右
-            scrollDir = 'right';
-            mainCharaDir = scrollDir;
-            mainCharaImg =  mainCharaImgArray[2];
-            break;
-
-        case 40: //下
-            scrollDir = 'down';
-            mainCharaDir = scrollDir;
-            mainCharaImg =  mainCharaImgArray[3];
-            break;
-    }
-    //キー押下の瞬間が、キャラ移動中でなければ、移動開始時イベントチェック
-    if (mainCharaPosY%mapTipLength == 0 && mainCharaPosX%mapTipLength == 0) {
+function keyDownHandler(evt) { 
+    //スクロールフラグがfalseの間(止まっている時)のみ、キーダウンイベント受け付け
+    if (!scrollState) {
+        switch (evt.keyCode) {
+            case 37: //左
+                scrollDir = 'left';
+                mainCharaDir = scrollDir;
+                mainCharaImg =  mainCharaImgArray[0];
+                break;
+    
+            case 38: //上
+                scrollDir = 'up';
+                mainCharaDir = scrollDir;
+                mainCharaImg =  mainCharaImgArray[1];
+                break;
+    
+            case 39: //右
+                scrollDir = 'right';
+                mainCharaDir = scrollDir;
+                mainCharaImg =  mainCharaImgArray[2];
+                break;
+    
+            case 40: //下
+                scrollDir = 'down';
+                mainCharaDir = scrollDir;
+                mainCharaImg =  mainCharaImgArray[3];
+                break;
+        }
         if(checkStartMoveEvent()) {
             scrollState = true;
         }
-    }
+    }   
 }
 
 //動き始めのイベントチェック
