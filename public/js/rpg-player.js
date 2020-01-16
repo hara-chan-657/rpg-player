@@ -176,10 +176,7 @@ function showStartProject() {
 
     //表示キャンバスに描画
     currentMapImgWidth = currentMapImg.naturalWidth;
-    //scrollCanvas.width = currentMapImgWidth;
     currentMapImgHeight = currentMapImg.naturalHeight;
-    //scrollCanvas.height = currentMapImgHeight;
-    //scrollContext.drawImage(currentMapImg,0,0);
     viewContext.drawImage(currentMapImg,0,0);
 
 }
@@ -219,6 +216,10 @@ function keyDownHandler(evt) {
                 scrollDir = 'down';
                 mainCharaDir = scrollDir;
                 mainCharaImg =  mainCharaImgArray[3];
+                break;
+            default:
+                //上記以外のキーは受け付けない
+                return;
                 break;
         }
         if(checkStartMoveEvent()) {
@@ -311,7 +312,6 @@ function draw() {
     }
 
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-    //viewContext.drawImage(currentMapImg, mainCharaPosX-viewCanvasHalfWidth, mainCharaPosY-viewCanvasHalfHeight);
     viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
     drawMainCharacter();
     setTimeout("draw()", 3);
