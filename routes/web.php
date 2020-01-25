@@ -18,7 +18,7 @@ use \App\Http\Middleware\SelectProjectMiddleware;
 // });
 
 Route::get('/', 'RpgPlayerController@selectProject')
-    ->middleware('selectProject');
+    ->middleware(SelectProjectMiddleware::class);
 
 //プロジェクトの情報を取得しにいく
 Route::post('/getProjectData', 'RpgPlayerController@getProjectData');

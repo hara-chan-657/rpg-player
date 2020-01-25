@@ -8,7 +8,7 @@ class RpgPlayerController extends Controller
 {
     //プロジェクト選択画面へ
     public function selectProject(Request $request) {
-        //selectProjectMiddlewara.phpからデータ取得
+        //SelectProjectMiddlewara.phpからデータ取得
         return view('rpg-player.select-project', ['data'=>$request->data]);
     }
 
