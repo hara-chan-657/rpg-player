@@ -88,8 +88,6 @@ var showTriangleFlg = false;
 
 //================================ 各種エレメント ===============================================//
 //スクロールキャンバス
-var scrollCanvas = document.getElementById('scrollCanvas');
-var scrollContext = scrollCanvas.getContext("2d");
 //表示キャンバス
 var viewCanvas = document.getElementById('viewCanvas');
 var viewContext = viewCanvas.getContext("2d");
