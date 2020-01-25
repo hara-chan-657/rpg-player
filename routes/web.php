@@ -22,4 +22,4 @@ Route::get('/', 'RpgPlayerController@selectProject')
 Route::post('/getProjectData', 'RpgPlayerController@getProjectData');
 
 //マップ保存のアクションへ
-Route::post('/rpg-editor/saveEditedMap', 'RpgEditorController@saveEditedMap');
+// Route::post('/rpg-editor/saveEditedMap', 'RpgEditorController@saveEditedMap');
