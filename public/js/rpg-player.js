@@ -129,6 +129,9 @@ function loadJsonToObj() {
         var xhr = new XMLHttpRequest();
         //同期処理なので、ここで毎回取得
         xhr.open('GET', url, false);
+        xhr.setRequestHeader('Pragma', 'no-cache');
+        xhr.setRequestHeader('Cache-Control', 'no-cache');
+        xhr.setRequestHeader('If-Modified-Since', 'Thu, 01 Jun 1970 00:00:00 GMT');
         xhr.send(null);
         mapObj[mapNames[i].innerText] = JSON.parse(xhr.responseText);
     }
@@ -137,6 +140,9 @@ function loadJsonToObj() {
     var xhr = new XMLHttpRequest();
     //同期処理なので、ここで毎回取得
     xhr.open('GET', url, false);
+    xhr.setRequestHeader('Pragma', 'no-cache');
+    xhr.setRequestHeader('Cache-Control', 'no-cache');
+    xhr.setRequestHeader('If-Modified-Since', 'Thu, 01 Jun 1970 00:00:00 GMT');
     xhr.send(null);
     projectDataObj = JSON.parse(xhr.responseText);
 }
