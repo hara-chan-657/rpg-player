@@ -66,6 +66,18 @@ var talkWinWidth = viewCanvasWidth - (mapTipLength*2);
 var talkWinHeight = mapTipLength*4;
 //会話用フォント
 var talkFont = "32px monospace";
+//質問中フラグ
+var questionFlg = false;
+//選択中の質問選択肢(0：はい、1：いいえ)
+var targetAnswer;
+// 質問ウィンドウ幅
+var questionWinWidth = mapTipLength*4;
+// 質問ウィンドウ高さ
+var questionWinHeight = mapTipLength*3;
+//質問ウィンドウスタート位置X
+var questionWinStartX = (talkWinStartX + talkWinWidth) - questionWinWidth; //会話ウィンドウの終わりXから4マス左
+//質問ウィンドウスタート位置Y
+var questionWinStartY = talkWinStartY - questionWinHeight - 2; //会話ウィンドウの始まりYから３マスと2px上
 //トーク中フラグ
 var talkFlg = false;
 //会話一行長さ
@@ -118,6 +130,58 @@ function setDefault() {
     setCanvas();
     showStartProject();
     draw();
+}
+
+//マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に3ミリ秒毎に動き続ける。
+function draw() {
+    switch (scrollState) {
+        //非スクロール中
+        case false:
+
+            break;
+        
+        //スクロール中
+        case true:
+            //スクロールポジションを更新
+            scrollPos++;
+
+            switch (scrollDir) {
+                case 'left':   
+                    mainCharaPosX--;
+                    break;
+                case 'up':   
+                    mainCharaPosY--;
+                    break;
+                case 'right':   
+                    mainCharaPosX++;
+                    break;
+                case 'down':   
+                    mainCharaPosY++;
+                    break;
+            }
+            //テスト用コード
+            console.log(mainCharaPosX + ':' + mainCharaPosY);
+            break;
+    }
+
+    //1マップチップ分スクロールが進んだら、変数を初期化して終了
+    if (scrollPos == mapTipLength) {
+        //各種変数初期化
+        scrollState = false;
+        scrollPos = 0;
+    }
+
+    //描画フラグがtrueならマップとメインキャラクターを描画
+    if (drawFlg) {
+        viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+        viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
+        drawMainCharacter();
+        setTimeout("draw()", 3); //1000分の3ミリ秒毎に毎回描画を繰り返す
+    } else {
+        //drawFlgがfalseの場合はdrawの繰り返しを止める。再会するにはtrueを代入し、draw()をコールする。
+        var timerId = setTimeout("draw()", 3);
+        clearTimeout(timerId);
+    }
 }
 
 //プロジェクトのjsonをすべてオブジェクトにロードする
@@ -215,6 +279,42 @@ function keyDownHandler(evt) {
                     return;
                     break;
             }
+        //質問の時
+        } else if (questionFlg) {
+                switch (evt.keyCode) {
+                    case 38: //上
+                        //カーソルを上に
+                        targetAnswer = 0; //はいを選択
+                        showYesNo(targetAnswer);
+                    break;
+                    case 40: //下
+                        //カーソルを下に
+                        targetAnswer = 1; //いいえを選択
+                        showYesNo(targetAnswer);
+                    break;
+                    case 65: //Aボタン
+                        //はいいいえを選んだ処理、質問イベントを終了する
+                        questionFlg = false; //質問フラグを戻す
+                        //描画を元に戻す（会話ウィンドウ、質問ウィンドウをクリア）
+                        viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+                        viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
+                        drawMainCharacter();
+                        if (eventIndex+1 != events.length) {
+                            //次のイベントがあったら次のイベント呼び出し
+                            //はいいいえの結果は引数に与えない、呼び出し先で変数targetAnswerを参照する
+                            eventIndex++;
+                            doEvents();
+                        } else {
+                            eventIndex = 0;
+                            drawFlg = true;
+                            draw(); //再描画開始
+                        }
+                        break;
+                    default:
+                        //上記以外のキーは受け付けない
+                        return;
+                        break;
+                }
         } else {
             switch (evt.keyCode) {
                 case 37: //左
@@ -392,11 +492,17 @@ function doEvents() {
         case 'talk':
             var talkContent =  maptipObj[evtFullName]['talkContent'];
             doTalk(talkContent);
-            break;
+        break;
+        case 'question':
+            var questionContent =  maptipObj[evtFullName]['questionContent'];
+            doQuestion(questionContent);
+        break;
     }
 }
 
-function doTalk(talkContent) {
+// param1 : 会話内容
+// param2 : イベントで設定されている場合true、質問などで会話を表示するために流用する場合はfalseを指定する
+function doTalk(talkContent) {    
     //drawを止める
     drawFlg = false;
     //会話中にする
@@ -433,14 +539,50 @@ function doTalk(talkContent) {
     //会話インデックスを初期化
     talkPageIndex = 0;
     //会話内容を表示する
-    showTalkContens();
+    showTalkContents();
+}
+
+function doQuestion(questionContent) {
+    questionFlg = true;
+    doTalk(questionContent);
+}
+
+function showYesNo(targetAnswerIndex) {
+    //doTalk参考に背景表示実装
+    //drawを止める
+    drawFlg = false;
+    //会話ウィンドウを白でクリア
+    viewContext.fillStyle = 'white';
+    viewContext.fillRect(questionWinStartX, questionWinStartY, questionWinWidth, questionWinHeight);
+    //会話ウィンドウを黒でクリア
+    viewContext.fillStyle = 'black';
+    viewContext.fillRect(questionWinStartX+2, questionWinStartY+2, questionWinWidth-4, questionWinHeight-4);
+    //会話表示メタデータセット
+    viewContext.fillStyle = 'white';
+    viewContext.textBaseline = 'top';
+    viewContext.font = talkFont;
+    //はい、いいえ
+    var yesNo = [
+        "はい",
+        "いいえ",
+    ]
+    // はいといいえを表示
+    for (var i=0; i<2; i++) {
+        //ページが持っている行の分会話を表示（行の折り返しの高さは最後の(i*mapTipLength)の部分）
+        viewContext.fillText(yesNo[i], questionWinStartX+40, questionWinStartY+10+(i*mapTipLength));
+    }
+    //カーソル描画、上下とAボタンではいいいえを選択し、結果を返す
+    targetAnswer = targetAnswerIndex; //1：はい、2：いいえ
+    viewContext.fillStyle = 'white';
+    viewContext.fillText('▶︎', questionWinStartX+5, questionWinStartY+10+(targetAnswerIndex*mapTipLength));
 }
 
 //会話内容表示メソッド
-function showTalkContens() {
-    //現在のページの会話内容を表示
+function showTalkContents() {
+    //現在のページの会話内容を表示（ページ毎に１〜複数行の会話内容を持っている）
     viewContext.fillStyle = 'white';
     for (var i=0; i<talkPages[talkPageIndex].length; i++) {
+        //ページが持っている行の分会話を表示（行の折り返しの高さは最後の(i*mapTipLength)の部分）
         viewContext.fillText(talkPages[talkPageIndex][i], talkWinStartX+2+10, talkWinStartY+2+10+(i*mapTipLength));
     }
     //次のページがあれば会話待ち状態に
@@ -484,24 +626,22 @@ function nextTalk() {
         viewContext.fillStyle = 'black';
         viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
         //会話内容を表示
-        showTalkContens();
+        showTalkContents();
     } else {
         //なかったら
         //会話イベント終了、次のイベントへ(フラグ等戻す)
-        //トーク中フラグ
-        talkFlg = false;
-        //会話一行長さ
-        talkLineLength = 0;
-        //会話行数
-        talkLines = [];
-        //会話行インデックス
-        talkLineIndex = 0;
-        //会話ページ
-        talkPages = [];
-        //会話ページインデックス
-        talkPageIndex = 0;
-        //次のイベントがあったら
-        if (eventIndex+1 != events.length) {
+        talkFlg = false; //トーク中フラグ
+        talkLineLength = 0; //会話一行長さ
+        talkLines = []; //会話行数
+        talkLineIndex = 0; //会話行インデックス
+        talkPages = []; //会話ページ
+        talkPageIndex = 0; //会話ページインデックス
+        if (questionFlg) {
+            var ret = showYesNo(0);
+            return ret;
+
+        } else if (eventIndex+1 != events.length) {
+            //次のイベントがあったら
             //次のイベント呼び出し
             eventIndex++;
             doEvents();
@@ -513,56 +653,3 @@ function nextTalk() {
         }
     }
 }
-
-//マップ描画イベント
-function draw() {
-    switch (scrollState) {
-        //非スクロール中
-        case false:
-
-            break;
-        
-        //スクロール中
-        case true:
-            //スクロールポジションを更新
-            scrollPos++;
-
-            switch (scrollDir) {
-                case 'left':   
-                    mainCharaPosX--;
-                    break;
-                case 'up':   
-                    mainCharaPosY--;
-                    break;
-                case 'right':   
-                    mainCharaPosX++;
-                    break;
-                case 'down':   
-                    mainCharaPosY++;
-                    break;
-            }
-            //テスト用コード
-            console.log(mainCharaPosX + ':' + mainCharaPosY);
-            break;
-    }
-
-    //1マップチップ分進んだら、変数を初期化して終了
-    if (scrollPos == mapTipLength) {
-        //各種変数初期化
-        scrollState = false;
-        scrollPos = 0;
-    }
-
-    //描画フラグがtrueならマップとメインキャラクターを描画
-    if (drawFlg) {
-        viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-        viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
-        drawMainCharacter();
-        setTimeout("draw()", 3);
-    } else {
-        var timerId = setTimeout("draw()", 3);
-        clearTimeout(timerId);
-    }
-}
-
-

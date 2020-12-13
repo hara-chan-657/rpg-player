@@ -10,6 +10,7 @@
 
 @section('select-project')
     <form action="/rpg-player/public/getProjectData" method="POST">
+    <!-- <form action="/getProjectData" method="POST"> -->
     {{ csrf_field() }}
     <p>プロジェクトを選択してください</p>
     <p>{!! $data['projects'] !!}</P>
