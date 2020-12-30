@@ -375,7 +375,9 @@ function checkStartMoveEvent() {
             var nextCellY = mainCharaPosY/mapTipLength;
             var nextCellX = mainCharaPosX/mapTipLength-1;
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
-            if ( maptiptype != 3) return false;
+            if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
+                if ( maptiptype != 3) return false;
+            }
             break;
         case 'up':  
             //マップ外でないかチェック 
@@ -384,7 +386,9 @@ function checkStartMoveEvent() {
             var nextCellY = mainCharaPosY/mapTipLength-1;
             var nextCellX = mainCharaPosX/mapTipLength;
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
-            if (maptiptype != 3) return false;
+            if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
+                if ( maptiptype != 3) return false;
+            }
             break;
         case 'right':  
             //マップ外でないかチェック 
@@ -393,7 +397,9 @@ function checkStartMoveEvent() {
             var nextCellY = mainCharaPosY/mapTipLength;
             var nextCellX = mainCharaPosX/mapTipLength+1;
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
-            if (maptiptype != 3) return false;
+            if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
+                if ( maptiptype != 3) return false;
+            }
             break;
         case 'down':
             //マップ外でないかチェック 
@@ -402,7 +408,9 @@ function checkStartMoveEvent() {
             var nextCellY = mainCharaPosY/mapTipLength+1;
             var nextCellX = mainCharaPosX/mapTipLength;
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
-            if (maptiptype != 3) return false;
+            if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
+                if ( maptiptype != 3) return false;
+            }
             break;
     }
     return true;
