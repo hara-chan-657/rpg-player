@@ -169,6 +169,13 @@ function draw() {
         //各種変数初期化
         scrollState = false;
         scrollPos = 0;
+        //トリガー進入のチェック
+        var res = checkTrigger('進入', scrollDir);
+        if (res != false) {
+            maptipObj = res;
+            トリガー進入があればイベント実行
+            doEvents();
+        }
     }
 
     //描画フラグがtrueならマップとメインキャラクターを描画
@@ -424,7 +431,7 @@ function checkTrigger(trigger, direction) {
                 case 'left':
                     //マップ外でないかチェック
                     if (mainCharaPosX == 0) return false;
-                    //通りぬけかどうかチェック
+                    //トリガーAボタンどうかチェック
                     var nextCellY = mainCharaPosY/mapTipLength;
                     var nextCellX = mainCharaPosX/mapTipLength-1;
                     var nextCell = currrentMapObj[nextCellY][nextCellX];
@@ -439,7 +446,7 @@ function checkTrigger(trigger, direction) {
                 case 'up':  
                     //マップ外でないかチェック 
                     if (mainCharaPosY == 0) return false;
-                    //通りぬけかどうかチェック
+                    //トリガーAボタンどうかチェック
                     var nextCellY = mainCharaPosY/mapTipLength-1;
                     var nextCellX = mainCharaPosX/mapTipLength;
                     var nextCell = currrentMapObj[nextCellY][nextCellX];
@@ -454,7 +461,7 @@ function checkTrigger(trigger, direction) {
                 case 'right':  
                     //マップ外でないかチェック 
                     if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
-                    //通りぬけかどうかチェック
+                    //トリガーAボタンどうかチェック
                     var nextCellY = mainCharaPosY/mapTipLength;
                     var nextCellX = mainCharaPosX/mapTipLength+1;
                     var nextCell = currrentMapObj[nextCellY][nextCellX];
@@ -469,7 +476,7 @@ function checkTrigger(trigger, direction) {
                 case 'down':
                     //マップ外でないかチェック 
                     if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
-                    //通りぬけかどうかチェック
+                    //トリガーAボタンどうかチェック
                     var nextCellY = mainCharaPosY/mapTipLength+1;
                     var nextCellX = mainCharaPosX/mapTipLength;
                     var nextCell = currrentMapObj[nextCellY][nextCellX];
@@ -486,6 +493,22 @@ function checkTrigger(trigger, direction) {
                     break;
             }
             break;
+
+        case '進入':
+                //トリガー進入かどうかチェック
+                var nextCellY = mainCharaPosY/mapTipLength;
+                var nextCellX = mainCharaPosX/mapTipLength;
+                var nextCell = currrentMapObj[nextCellY][nextCellX];
+                if(nextCell.hasOwnProperty('trigger')) {
+                    if(nextCell['trigger'] == '進入') {
+                        return nextCell['events'];
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+                break;
     }
 }
 
@@ -495,7 +518,8 @@ function doEvents() {
     events = Object.keys(maptipObj);
     //イベントネームを取得
     var evtFullName = events[eventIndex];
-    var evtName = evtFullName.substr(2);
+    var index = evtFullName.indexOf('_');
+    var evtName = evtFullName.substr(index+1);
     switch (evtName) {
         case 'talk':
             var talkContent =  maptipObj[evtFullName]['talkContent'];
@@ -505,6 +529,54 @@ function doEvents() {
             var questionContent =  maptipObj[evtFullName]['questionContent'];
             doQuestion(questionContent);
         break;
+        case 'transition':
+            var trasitionDataObj =  maptipObj[evtFullName];
+            doTransition(trasitionDataObj);
+        break;
+    }
+}
+
+//画面遷移
+function doTransition(trasitionDataObj) {
+    //現在マップをクリア    
+    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+
+    //遷移先のマップ画像とマップオブジェクトを取得
+    var trasitionMap = trasitionDataObj['transitionMap'];
+    currentMapImg = document.getElementById(trasitionMap);
+    currrentMapObj =  mapObj[trasitionMap];
+
+    //遷移先マップを表示キャンバスに描画
+    currentMapImgWidth = currentMapImg.naturalWidth;
+    currentMapImgHeight = currentMapImg.naturalHeight;
+    //viewContext.drawImage(currentMapImg,0,0);
+
+    //スタートポジションをロード
+    mainCharaPosX = trasitionDataObj['transitionX'] * mapTipLength;
+    mainCharaPosY = trasitionDataObj['transitionY'] * mapTipLength;
+
+    //メインキャラのディレクションをロード
+    var transitionDirection = trasitionDataObj['transitionDirection'];
+    switch (transitionDirection) {
+        case 'left':
+            mainCharaImg = mainCharaImgArray[0];
+            break;
+        case 'up':
+            mainCharaImg = mainCharaImgArray[1];
+            break;
+        case 'right':
+            mainCharaImg = mainCharaImgArray[2];
+            break;
+        case 'down':
+            mainCharaImg = mainCharaImgArray[3];
+            break;
+    }
+    //遷移先で再描画開始
+    //遷移前に描画を止めていない場合（進入での遷移）は、drawを呼ばない（呼ぶと二重に呼ばれてキャラの動きは倍速になる）
+    if (!drawFlg) { //ここが重要
+        eventIndex = 0; //イベントインデックスは、遷移するたびに0に戻す（次のマップチップに移るため）
+        drawFlg = true;
+        draw();
     }
 }
 
