@@ -29,6 +29,15 @@ class RpgPlayerController extends Controller
                 $jsonFiles[] = basename($jsonFile);
             }
         }
-        return view('rpg-player.rpg-player', ['pngFiles'=>$pngFiles, 'jsonFiles'=>$jsonFiles, 'project'=>$request->oldProjectName]);
+        $i = 0; //キャラクター画像インデックス
+        $characters = array();
+        foreach(glob('./projects/' . $request->oldProjectName . '/characters/battle/*.png') AS $character){
+            if(is_file($character)){
+                $characters[$i]['path'] = $character;
+                $characters[$i]['baseName'] = basename($character);
+                $i++;
+            }
+        }
+        return view('rpg-player.rpg-player', ['pngFiles'=>$pngFiles, 'jsonFiles'=>$jsonFiles, 'project'=>$request->oldProjectName, 'characters'=>$characters]);
     }
 }
