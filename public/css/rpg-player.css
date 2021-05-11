@@ -1,7 +1,3 @@
-html {
-    background-color: grey;
-}
-
 #scrollCanvas {
     background-color: greenyellow;
 }
@@ -18,21 +14,4 @@ html {
 .eachMapContainer {
     float: left;
     margin: 0px 3px;
-}
-
-
-@font-face {
-    font-family: 'PixelMplus10Bold';
-    src:url('../font/PixelMplus10-Bold.ttf') format('truetype'); /* Safari, Android, iOS */
-}
-
-@font-face {
-    font-family: 'PixelMplus10Regular';
-    src:url('../font/PixelMplus10-Regular.ttf') format('truetype'); /* Safari, Android, iOS */
-}
-
-body{
-    /* font-family: "PixelMplus10Bold"; */
-    font-family: "PixelMplus10Regular";
-    letter-spacing: 4px;
 }

@@ -30,8 +30,6 @@ var mapObj = [];
 var projectDataObj;
 //現在選択中マップオブジェクト;
 var currrentMapObj = null;
-//現在選択中マップ繰り返しマップチップ
-var mapRepeat = [];
 //現在選択中マップ名
 var currrentMapName;
 //現在選択中マップ画像
@@ -67,12 +65,11 @@ var talkWinWidth = viewCanvasWidth - (mapTipLength*2);
 //会話用ウィンドウ縦幅
 var talkWinHeight = mapTipLength*4;
 //会話用フォント
-//var talkFont = "32px monospace";
-var talkFont = "27px PixelMplus10Regular";
+var talkFont = "32px monospace";
 //質問中フラグ
 var questionFlg = false;
 //選択中の質問選択肢(0：はい、1：いいえ)
-var targetAnswer = 0;
+var targetAnswer;
 // 質問ウィンドウ幅
 var questionWinWidth = mapTipLength*4;
 // 質問ウィンドウ高さ
@@ -99,19 +96,7 @@ var talkPageIndex = 0;
 var talkWaitFlg = false;
 //会話ストップ中三角形表示フラグ
 var showTriangleFlg = false;
-//バトル中フラグ
-var battleFlg = false;
-//バトルエンドフラグ　バトル中に、バトルを終了するための判断フラグ
-battleEndFlg = false;
-//オプション選択フラグ
-var selectBattleOptionFlg = false;
-//対戦オプションインデックス
-var targetBattleOption = 0;
-//対戦オプション
-var battleOptions = [
-    "たたかう",
-    "にげる",
-]
+
 
 //================================ 各種エレメント ===============================================//
 //スクロールキャンバス
@@ -145,12 +130,6 @@ function setDefault() {
     setCanvas();
     showStartProject();
     draw();
-    loadMapRepaet();
-}
-
-function sound() {
-    document.getElementById("overSound").currentTime = 0;
-    document.getElementById("overSound").play();
 }
 
 //マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に3ミリ秒毎に動き続ける。
@@ -194,7 +173,7 @@ function draw() {
         var res = checkTrigger('進入', scrollDir);
         if (res != false) {
             maptipObj = res;
-            //トリガー進入があればイベント実行
+            トリガー進入があればイベント実行
             doEvents();
         }
     }
@@ -202,158 +181,14 @@ function draw() {
     //描画フラグがtrueならマップとメインキャラクターを描画
     if (drawFlg) {
         viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-        viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);　//ベースマップの描画
-        drawMapRepeat(); //繰り返しマップの描画
-        drawMainCharacter(); //メインキャラの描画
-
-        //テスト
-        //drawOnotherCharacter(); //とりあえずobjの単純表示はできそう
-        //drawlmr();
-        drawGoRight();
-
-
+        viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
+        drawMainCharacter();
         setTimeout("draw()", 3); //1000分の3ミリ秒毎に毎回描画を繰り返す
     } else {
         //drawFlgがfalseの場合はdrawの繰り返しを止める。再会するにはtrueを代入し、draw()をコールする。
         var timerId = setTimeout("draw()", 3);
         clearTimeout(timerId);
     }
-}
-
-/////////////////////////////////////////////////////////テスト
-var imgL = document.getElementById("l");
-var imgM = document.getElementById("m");
-var imgR = document.getElementById("r");
-var imgDr = document.getElementById("dr");
-var imgDrr = document.getElementById("drr");
-var imgDrl = document.getElementById("drl");
-var imgDl = document.getElementById("dl");
-var imgDlr = document.getElementById("dlr");
-var imgDll = document.getElementById("dll");
-
-//オーキド博士みたいな、オブジェクトのみ移動するファンクション
-//将来的には、以下のインプットで自動で流せるようにしたい
-//①キャラクターの種類
-//②進む方向
-//③どのほど進むか（0も含む。方向を変えるため）。
-//④スピード（これは固定でいくつか決めておいたほうか良いかな）
-var indexD = 0; //imgAryDのインデックス用
-var posXD = 0;  //X方向の何マス目にいるかの数字
-var wentPx = 0; //進んだピクセル
-var count = 0   //進むスピードを変化させるための数字。
-var imgAryD = [imgDr, '進む', '進む', '進む', '進む', imgDr, '進む', imgDr];
-var imgAryDr = [imgDrr, imgDrl];
-var leg = 0;
-//var imgAryD = [imgDr, imgDrl, imgDrr, imgDrl, imgDrr, imgDrl, imgDrr, imgDrl, imgDr];
-function drawGoRight() {
-    // 
-    if (count % 3 == 0) {
-        //drawの３回毎に移動する（一回毎だと早すぎた。逆に言えば、スピードはここで変えられる。）
-        if (imgAryD[indexD] == imgDr) {
-            //静止。
-            viewContext.drawImage(imgDr,320+(posXD*mapTipLength), 96);
-            wentPx++;
-        } else {
-            //動く。wentPx分追加して描画する。
-            viewContext.drawImage(imgAryDr[leg%2],320+(posXD*mapTipLength+wentPx), 96);
-            wentPx++;
-        }
-
-        if (wentPx == mapTipLength) {
-            //1チップ分wentPxが増えたら
-            if (imgAryD[indexD] != imgDr) {
-                //現在のアイコンが、右向きの静止「以外」だったら（つまり進行中のアイコンだった場合のみ）
-                posXD++; //一マス進んだことにする。
-            }
-            indexD++;
-            wentPx = 0;
-            leg++; 
-        }   
-    } else {
-        //count3の時以外も表示だけはしないと、点滅みたいになっちゃう（３回に１回しか表示しないから）
-        if (imgAryD[indexD] == imgDr) {
-            //静止
-            viewContext.drawImage(imgAryD[indexD],320+(posXD*mapTipLength), 96);
-            //wentPx++;
-        } else {
-            viewContext.drawImage(imgAryDr[leg%2],320+(posXD*mapTipLength+wentPx), 96);
-            //wentPx++;
-        }
-    }
-    count++;
-}
-var switchCount = 0;
-var switchCountMax = 100;
-var switched = 0;
-//var imgAry = [imgL, imgM, imgR];
-var imgAry = [imgL, imgR];
-var vImg = imgAry[0];
-var index = 0;
-function drawlmr() {
-    viewContext.drawImage(imgAry[index], 32, 32);
-    switchCount++;
-    if (switchCount == switchCountMax) {
-        index++;
-        if (index == imgAry.length) index = 0;
-        switchCount = 0;
-    }
-}
-function drawOnotherCharacter() {
-    //他きゃらの場所は決まっているものとする
-
-    //とりあえず固定で表示するだけならこれ
-    //viewContext.drawImage(mainCharaImg, viewCanvasHalfWidth-mainCharaPosX + 32, viewCanvasHalfHeight-mainCharaPosY + 32);
-    
-    //何か決まった間隔の繰り返しで行いたい時はかきのコード
-    // viewContext.drawImage(mainCharaImg, viewCanvasHalfWidth-mainCharaPosX + 32, viewCanvasHalfHeight-mainCharaPosY + 32 + (switched * 32));
-    // switchCount++;
-    // if (switchCount == switchCountMax) {
-    //     switched++;
-    //     switchCount = 0;
-    // }
-
-        //イメージの繰り返ししたい時はこれ（横流し）
-        viewContext.drawImage(mainCharaImg, 0+shiftX, 0, 32-shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + 32, viewCanvasHalfHeight-mainCharaPosY + 32, 32-shiftX, 32);//なんか最後の引数dxがよくわからんけどできた
-        viewContext.drawImage(mainCharaImg, 0, 0, shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + 32+32-shiftX, viewCanvasHalfHeight-mainCharaPosY + 32, shiftX, 32);   //なんか最後の引数dxがよくわからんけどできた
-         if (doing == doNum) {
-            shiftX++;
-            if (shiftX == shiftCountMax) {
-                shiftX = 0;
-            }
-            doing = 0;
-        }
-        doing++;
-}
-/////////////////////////////////////////////////////////テスト
-
-//海のような、繰り返して動いているマップチップを描画する
-//マップチップタイプ6（マップ繰り返し）のマップチップを繰り返し描画する
-//マップイメージから、該当の座標部分のみ描画する。
-var shiftX = 0;                     //横に動くpx
-var shiftCountMax = mapTipLength;   //横に動くpxのMax。まあ１マップ分なので、マップチップレングスでもいいんだけど。
-var doing = 0;                      //doNumと合わせて使用する。duNumは横流しの早さを決める数字。小さくすると、速くなる。
-var doNum = 30;                     //横流しの早さを決める。
-function drawMapRepeat() {
-    //var aryX = [1,3,5,7,9];
-    //var aryY = [1,4,7,10,13];
-    //var dummy = document.getElementById("dummy");
-    // mapRepeat = [[1,3],[3,5],[6,9],[8,10],[13,15],]
-    //for (var i=0; i<aryX.length; i++) {
-    for (var i=0; i<mapRepeat.length; i++) {
-        //イメージの繰り返ししたい時はこれ（横流し）テストコード
-        //viewContext.drawImage(dummy, 0+shiftX, 0, 32-shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + (32*aryX[i]),        viewCanvasHalfHeight-mainCharaPosY + (32*aryY[i]), 32-shiftX, 32);//なんか最後の引数dxがよくわからんけどできた
-        //viewContext.drawImage(dummy, 0,        0, shiftX,    32, viewCanvasHalfWidth-mainCharaPosX + (32*aryX[i]+mapTipLength)-shiftX, viewCanvasHalfHeight-mainCharaPosY + (32*aryY[i]), shiftX,    32);   //なんか最後の引数dxがよくわからんけどできた
-        viewContext.drawImage(currentMapImg, mapRepeat[i][0]*mapTipLength+shiftX, mapRepeat[i][1]*mapTipLength, 32-shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength),                     viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), 32-shiftX, 32);//なんか最後の引数dxがよくわからんけどできた
-        viewContext.drawImage(currentMapImg, mapRepeat[i][0]*mapTipLength,        mapRepeat[i][1]*mapTipLength, shiftX,    32, viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength+mapTipLength)-shiftX, viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), shiftX,    32);   //なんか最後の引数dxがよくわからんけどできた
-        if (doing == doNum) {
-            shiftX++;
-            if (shiftX == shiftCountMax) {
-                shiftX = 0;
-            }
-            doing = 0;
-        }
-    }
-    if (mapRepeat.length != 0) doing++; //マップリピートが0の場合、無限に増えていくのを防ぐためにこういう風に書いている。
 }
 
 //プロジェクトのjsonをすべてオブジェクトにロードする
@@ -453,73 +288,33 @@ function keyDownHandler(evt) {
             }
         //質問の時
         } else if (questionFlg) {
-            switch (evt.keyCode) {
-                case 38: //上
-                    //カーソルを上に
-                    targetAnswer = 0; //はいを選択
-                    showYesNo(targetAnswer);
-                break;
-                case 40: //下
-                    //カーソルを下に
-                    targetAnswer = 1; //いいえを選択
-                    showYesNo(targetAnswer);
-                break;
-                case 65: //Aボタン
-                    //はいいいえを選んだ処理、質問イベントを終了する
-                    questionFlg = false; //質問フラグを戻す
-                    //描画を元に戻す（会話ウィンドウ、質問ウィンドウをクリア）
-                    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-                    viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
-                    drawMainCharacter();
-                    if (eventIndex+1 != events.length) {
-                        //次のイベントがあったら次のイベント呼び出し
-                        //はいいいえの結果は引数に与えない、呼び出し先で変数targetAnswerを参照する
-                        eventIndex++;
-                        doEvents();
-                    } else {
-                        eventIndex = 0;
-                        drawFlg = true;
-                        draw(); //再描画開始
-                    }
-                    break;
-                default:
-                    //上記以外のキーは受け付けない
-                    return;
-                    break;
-            }
-
-        //バトルの時
-        } else if (battleFlg) {
-            //バトルオプション選択時
-            if (selectBattleOptionFlg) {
                 switch (evt.keyCode) {
                     case 38: //上
                         //カーソルを上に
-                        if (targetBattleOption != 0) {
-                            targetBattleOption--;
-                            showBattleOptions();
-                        }
+                        targetAnswer = 0; //はいを選択
+                        showYesNo(targetAnswer);
                     break;
                     case 40: //下
                         //カーソルを下に
-                        if (targetBattleOption != battleOptions.length-1) {
-                            targetBattleOption++;
-                            showBattleOptions();
-                        }
+                        targetAnswer = 1; //いいえを選択
+                        showYesNo(targetAnswer);
                     break;
                     case 65: //Aボタン
-                        switch (targetBattleOption) {
-                            case 0: //たたかう
-                                
-                            break;
-                            case 1: //逃げる
-                                //battleFlg = false;
-                                selectBattleOptionFlg = false;
-                                battleEndFlg = true;
-                                doTalk("逃げる〜〜〜〜！！");
-                            break;
-                            default:
-                            break;
+                        //はいいいえを選んだ処理、質問イベントを終了する
+                        questionFlg = false; //質問フラグを戻す
+                        //描画を元に戻す（会話ウィンドウ、質問ウィンドウをクリア）
+                        viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+                        viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
+                        drawMainCharacter();
+                        if (eventIndex+1 != events.length) {
+                            //次のイベントがあったら次のイベント呼び出し
+                            //はいいいえの結果は引数に与えない、呼び出し先で変数targetAnswerを参照する
+                            eventIndex++;
+                            doEvents();
+                        } else {
+                            eventIndex = 0;
+                            drawFlg = true;
+                            draw(); //再描画開始
                         }
                         break;
                     default:
@@ -527,7 +322,6 @@ function keyDownHandler(evt) {
                         return;
                         break;
                 }
-            }
         } else {
             switch (evt.keyCode) {
                 case 37: //左
@@ -739,80 +533,7 @@ function doEvents() {
             var trasitionDataObj =  maptipObj[evtFullName];
             doTransition(trasitionDataObj);
         break;
-        case 'battle':
-            var battleData =  maptipObj[evtFullName];
-            doBattle(battleData);
-        break;
     }
-}
-
-//バトル
-function doBattle(battleData) {
-    //drawを止める
-    drawFlg = false;
-    //バトル中にする
-    battleFlg = true;
-    //バトル画面を表示する
-    showBattleScreen(battleData);
-}
-
-//バトル画面を表示する
-function showBattleScreen(battleData) {
-    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-    var chara1 =  battleData['chara1'];
-    var chara2 =  battleData['chara2'];
-    var chara3 =  battleData['chara3'];
-    var charaGroup =  battleData['charaGroup'];
-    var chara1Data = projectDataObj['characters'][chara1];
-    var chara2Data = projectDataObj['characters'][chara2];
-    var chara3Data = projectDataObj['characters'][chara3];
-
-    //画面上部：敵キャラ情報表示（96）
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(0, 0, viewCanvasWidth, 96);
-    viewContext.fillStyle = 'black';
-    viewContext.fillRect(0, 0, 224, 96);
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(2, 2, 220, 92);
-    viewContext.fillStyle = 'black';
-    viewContext.textBaseline = 'top';
-    viewContext.font = talkFont;
-    viewContext.fillText(chara1Data["chrName"], 10, 15); //キャラ名
-    viewContext.fillText(chara1Data["HP"], 10, 55); //HP
-
-    viewContext.fillStyle = 'black';
-    viewContext.fillRect(256, 0, 224, 96);
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(258, 2, 220, 92);
-    viewContext.fillStyle = 'black';
-    viewContext.textBaseline = 'top';
-    viewContext.font = talkFont;
-    viewContext.fillText(chara2Data["chrName"], 256+10, 15); //キャラ名
-    viewContext.fillText(chara2Data["HP"], 256+10, 55); //HP
-
-    viewContext.fillStyle = 'black';
-    viewContext.fillRect(512, 0, 224, 96);
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(514, 2, 220, 92);
-    viewContext.fillStyle = 'black';
-    viewContext.textBaseline = 'top';
-    viewContext.font = talkFont;
-    viewContext.fillText(chara3Data["chrName"], 512+10, 15); //キャラ名
-    viewContext.fillText(chara3Data["HP"], 512+10, 55); //HP
-
-    //画面真ん中：敵キャラ描画（224）
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(0, 96, viewCanvasWidth, 224);
-    var charaGroup =  battleData['charaGroup'];
-    var isBoss =  battleData['isBoss'];
-    var chara1Img =  document.getElementById(chara1Data['chrImgName']);
-    var chara2Img =  document.getElementById(chara2Data['chrImgName']);
-    var chara3Img =  document.getElementById(chara3Data['chrImgName']);
-    viewContext.drawImage(chara1Img, 0, 96);
-    viewContext.drawImage(chara2Img, 256, 96);
-    viewContext.drawImage(chara3Img, 512, 96);
-
-    doTalk(charaGroup + "が現れた！！");
 }
 
 //画面遷移
@@ -850,10 +571,6 @@ function doTransition(trasitionDataObj) {
             mainCharaImg = mainCharaImgArray[3];
             break;
     }
-
-    // マップ繰り返しのロード
-    loadMapRepaet();
-
     //遷移先で再描画開始
     //遷移前に描画を止めていない場合（進入での遷移）は、drawを呼ばない（呼ぶと二重に呼ばれてキャラの動きは倍速になる）
     if (!drawFlg) { //ここが重要
@@ -863,20 +580,6 @@ function doTransition(trasitionDataObj) {
     }
 }
 
-function loadMapRepaet() {
-    mapRepeat = [];
-    for(let k in currrentMapObj) {
-        //console.log(currrentMapObj[k]);
-        for(let l in currrentMapObj[k]) {
-            if (currrentMapObj[k][l]['maptipType'] == 6) {
-                var aryXY = [l, k];
-                mapRepeat.push(aryXY);
-            }
-        }
-    }
-    doing = 0; //初期化。重要。
-}
-
 // param1 : 会話内容
 // param2 : イベントで設定されている場合true、質問などで会話を表示するために流用する場合はfalseを指定する
 function doTalk(talkContent) {    
@@ -884,14 +587,14 @@ function doTalk(talkContent) {
     drawFlg = false;
     //会話中にする
     talkFlg = true;
-    //会話ウィンドウを黒でクリア
-    viewContext.fillStyle = 'black';
+    //会話ウィンドウを白でクリア
+    viewContext.fillStyle = 'white';
     viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
     //会話ウィンドウを黒でクリア
-    viewContext.fillStyle = 'white';
+    viewContext.fillStyle = 'black';
     viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
     //会話表示メタデータセット
-    viewContext.fillStyle = 'black';
+    viewContext.fillStyle = 'white';
     viewContext.textBaseline = 'top';
     viewContext.font = talkFont;
     talkLines[talkLineIndex] = '';
@@ -929,13 +632,13 @@ function showYesNo(targetAnswerIndex) {
     //drawを止める
     drawFlg = false;
     //会話ウィンドウを白でクリア
-    viewContext.fillStyle = 'black';
+    viewContext.fillStyle = 'white';
     viewContext.fillRect(questionWinStartX, questionWinStartY, questionWinWidth, questionWinHeight);
     //会話ウィンドウを黒でクリア
-    viewContext.fillStyle = 'white';
+    viewContext.fillStyle = 'black';
     viewContext.fillRect(questionWinStartX+2, questionWinStartY+2, questionWinWidth-4, questionWinHeight-4);
     //会話表示メタデータセット
-    viewContext.fillStyle = 'black';
+    viewContext.fillStyle = 'white';
     viewContext.textBaseline = 'top';
     viewContext.font = talkFont;
     //はい、いいえ
@@ -950,63 +653,17 @@ function showYesNo(targetAnswerIndex) {
     }
     //カーソル描画、上下とAボタンではいいいえを選択し、結果を返す
     targetAnswer = targetAnswerIndex; //1：はい、2：いいえ
-    viewContext.fillStyle = 'black';
-    viewContext.fillText('▶︎', questionWinStartX+5, questionWinStartY+10+(targetAnswerIndex*mapTipLength));
-}
-
-function showBattleOptions() {
-    selectBattleOptionFlg = true;
-    //doTalk参考に背景表示実装
-    //drawを止める
-    //drawFlg = false;
-    //会話ウィンドウを白でクリア
-    viewContext.fillStyle = 'black';
-    viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
-    //会話ウィンドウを黒でクリア
     viewContext.fillStyle = 'white';
-    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
-    //会話表示メタデータセット
-    viewContext.fillStyle = 'black';
-    viewContext.textBaseline = 'top';
-    viewContext.font = talkFont;
-    // オプションを表示
-    for (var i=0; i<battleOptions.length; i++) {
-        //ページが持っている行の分会話を表示（行の折り返しの高さは最後の(i*mapTipLength)の部分）
-        viewContext.fillText(battleOptions[i], questionWinStartX, talkWinStartY+10+(i*mapTipLength));
-    }
-    //カーソル描画、上下とAボタンではいいいえを選択し、結果を返す
-    //targetBattleOption = targetBattleOptionIndex; //1：はい、2：いいえ
-    viewContext.fillStyle = 'black';
-    viewContext.fillText('▶︎', questionWinStartX-30, talkWinStartY+10+(targetBattleOption*mapTipLength));   
+    viewContext.fillText('▶︎', questionWinStartX+5, questionWinStartY+10+(targetAnswerIndex*mapTipLength));
 }
 
 //会話内容表示メソッド
 function showTalkContents() {
     //現在のページの会話内容を表示（ページ毎に１〜複数行の会話内容を持っている）
-    viewContext.fillStyle = 'black';
-    var lineSpace = 0; //行間調整ようの変数
-    //ページが持っている行の分会話を表示（行の折り返しの高さは最後の(i*mapTipLength)の部分）
-    //行の分ループ（行は最高３ページで格納してある）
+    viewContext.fillStyle = 'white';
     for (var i=0; i<talkPages[talkPageIndex].length; i++) {
-        if (i != 0) {
-            lineSpace = 8;
-        }
-        //１文字ずつ描画（ちょっと遅らせる）。その時に音も出す。
-        var slideX = ''; //１文字を描画するために、横にずらす分を加算していく変数
-        for (var j=0; j<talkPages[talkPageIndex][i].length; j++) {
-            var mSlideX = viewContext.measureText(slideX);
-            viewContext.fillText(talkPages[talkPageIndex][i][j], talkWinStartX+mSlideX.width+2+10, talkWinStartY+2+10+(i*mapTipLength)+(i*lineSpace));
-            //描画した文字の長さ分、スライド値を増やす
-            slideX += talkPages[talkPageIndex][i][j];
-            //一瞬待つ（いったん挫折！！時間ある時にしっかり取り組むとする、、）
-            //sleep(100);
-            //stop();
-            // 5秒後にメッセージを表示
-            //console.log('5秒経過しました！');
-
-        }
-        //行間リセット
-        lineSpace = 0;
+        //ページが持っている行の分会話を表示（行の折り返しの高さは最後の(i*mapTipLength)の部分）
+        viewContext.fillText(talkPages[talkPageIndex][i], talkWinStartX+2+10, talkWinStartY+2+10+(i*mapTipLength));
     }
     //次のページがあれば会話待ち状態に
     if (talkPageIndex+1 != talkPages.length) {
@@ -1018,35 +675,17 @@ function showTalkContents() {
         //次のページがなければ、会話待ち状態を解除
         talkWaitFlg = false;
     }
-
-    // ビジーwaitを使う方法
-    // function sleep(waitMsec) {
-    //     var startMsec = new Date();
-    //     // 指定ミリ秒間だけループさせる（CPUは常にビジー状態）
-    //     while (new Date() - startMsec < waitMsec);
-    // }
 }
-
-async function stop() {
-    //const _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    let _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    await _sleep(20000);
-}
-
-// async function wait () {
-//     let wait_promise = new Promise( resolve => { setTimeout( resolve, 5000 ) } );
-//     await wait_promise;
-// }
 
 //会話待ち状態
 function talkWait() {
     if (talkWaitFlg) {
         if (showTriangleFlg) {
-            viewContext.fillStyle = 'black';
+            viewContext.fillStyle = 'white';
             viewContext.fillText('▼', talkWinStartX+talkWinWidth-mapTipLength-10, talkWinStartY+talkWinHeight-mapTipLength-10);
             showTriangleFlg = false;
         } else {
-            viewContext.fillStyle = 'white';
+            viewContext.fillStyle = 'black';
             viewContext.fillText('▼', talkWinStartX+talkWinWidth-mapTipLength-10, talkWinStartY+talkWinHeight-mapTipLength-10);
             showTriangleFlg = true;
         }
@@ -1064,7 +703,7 @@ function nextTalk() {
         //会話ページインデックスを増
         talkPageIndex++;
         //会話エリアクリア
-        viewContext.fillStyle = 'white';
+        viewContext.fillStyle = 'black';
         viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
         //会話内容を表示
         showTalkContents();
@@ -1077,25 +716,7 @@ function nextTalk() {
         talkLineIndex = 0; //会話行インデックス
         talkPages = []; //会話ページ
         talkPageIndex = 0; //会話ページインデックス
-        if (battleFlg) {
-            if (battleEndFlg) {
-                targetBattleOption = 0;
-                battleEndFlg = false;
-                battleFlg = false;
-                drawFlg = true;
-                draw();
-                if (eventIndex+1 != events.length) {
-                    eventIndex++;
-                    doEvents();
-                } else {
-                    eventIndex = 0;
-                    //drawFlg = true;
-                    //draw(); //再描画開始
-                }
-            } else {
-                showBattleOptions(); //敵が現れた後にAボタン受付で開始
-            }
-        } else if (questionFlg) {
+        if (questionFlg) {
             var ret = showYesNo(0);
             return ret;
 
