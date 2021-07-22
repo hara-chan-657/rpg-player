@@ -17,6 +17,7 @@
     @endcomponent
 
     <canvas id="viewCanvas"></canvas>
+    <p>確認コマンド：console.log(mapObj);</p>
 
     <div id="projectsContainer">
         <p id="projectName">{{$project}}</p>

@@ -173,7 +173,7 @@ function draw() {
         var res = checkTrigger('進入', scrollDir);
         if (res != false) {
             maptipObj = res;
-            トリガー進入があればイベント実行
+            //トリガー進入があればイベント実行
             doEvents();
         }
     }
