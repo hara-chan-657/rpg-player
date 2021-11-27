@@ -30,6 +30,10 @@ var mapObj = [];
 var projectDataObj;
 //現在選択中マップオブジェクト;
 var currrentMapObj = null;
+//現在選択中マップキャラクターオブジェクト
+var mapCharaObjects = [];
+//現在選択中マップツールオブジェクト
+var mapToolObjects = [];
 //現在選択中マップ繰り返しマップチップ
 var mapRepeat = [];
 //現在選択中マップ名
@@ -58,6 +62,8 @@ var maptipObj;
 var events;
 //イベントインデックス
 var eventIndex = 0;
+//実行中イベントタイプ（マップイベントorオブジェクトイベント）
+var doingEvtType = '';
 //会話用ウィンドウスタート位置X
 var talkWinStartX = mapTipLength;
 //会話用ウィンドウスタート位置Y
@@ -112,6 +118,16 @@ var battleOptions = [
     "たたかう",
     "にげる",
 ]
+//プロジェクトツール
+var prjTools = new Object();
+//ツールフラグ
+var toolFlg = false;
+//手持ちツール
+var haveTools = [];
+//リアクション画像配列
+var reactionImgArray = [];
+//道具ゲット時サウンドフラグ
+var soundToolFlg = false;
 
 //================================ 各種エレメント ===============================================//
 //スクロールキャンバス
@@ -129,7 +145,7 @@ window.addEventListener('load', setDefault, false);
 document.body.addEventListener('keydown', function(evt) {keyDownHandler(evt);}, false);
 document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, false);
 // for (var i=0; i<maps.length; i++) {
-// 	maps[i].addEventListener('click', function(evt) {setEditMap(evt);}, false);
+//  maps[i].addEventListener('click', function(evt) {setEditMap(evt);}, false);
 // }
 // currentMapCanvas.addEventListener('click', function(evt) {showMapTipData(evt);}, false);
 // saveMap.addEventListener('click', saveMapToServer, false);
@@ -141,16 +157,23 @@ document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, fals
 function setDefault() {
     loadJsonToObj();
     loadProjectData();
-    loadMainCharacter();
+    loadImages();
+    loadPrjTools();
     setCanvas();
     showStartProject();
     draw();
-    loadMapRepaet();
+    loadSpecialMapChips();
 }
 
-function sound() {
-    document.getElementById("overSound").currentTime = 0;
-    document.getElementById("overSound").play();
+function sound(soundPath='') {
+    if (soundPath == '') {
+        //document.getElementById("overSound").currentTime = 0;
+        //document.getElementById("overSound").play();
+    } else {
+        soundPath = '/sounds/' + soundPath;
+        document.getElementById(soundPath).currentTime = 0;
+        document.getElementById(soundPath).play();
+    }
 }
 
 //マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に3ミリ秒毎に動き続ける。
@@ -191,26 +214,26 @@ function draw() {
         scrollState = false;
         scrollPos = 0;
         //トリガー進入のチェック
+        enterFlg = false; //前回trueになっている可能性があるので、ここで初期化
+        goBackFlg = false; //前回trueになっている可能性があるので、ここで初期化
         var res = checkTrigger('進入', scrollDir);
         if (res != false) {
+            enterFlg = true; //進入チェックがOKなら、進入フラグをtrueにする
             maptipObj = res;
             //トリガー進入があればイベント実行
+            doingEvtType = 'map';
             doEvents();
         }
     }
 
-    //描画フラグがtrueならマップとメインキャラクターを描画
+    //描画フラグがtrueならマップとオブジェクトとメインキャラクターを描画
     if (drawFlg) {
-        viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-        viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);　//ベースマップの描画
-        drawMapRepeat(); //繰り返しマップの描画
-        drawMainCharacter(); //メインキャラの描画
+        drawCanvas() //キャンバスに描画する部分の関数をこの関数にまとめる（単に画面をリセットしたい場合など、この関数を呼べるようにするため）
 
-        //テスト
-        //drawOnotherCharacter(); //とりあえずobjの単純表示はできそう
-        //drawlmr();
+            //テスト
+        drawOnotherCharacter(); //とりあえずobjの単純表示はできそう
+        drawlmr();
         drawGoRight();
-
 
         setTimeout("draw()", 3); //1000分の3ミリ秒毎に毎回描画を繰り返す
     } else {
@@ -218,6 +241,15 @@ function draw() {
         var timerId = setTimeout("draw()", 3);
         clearTimeout(timerId);
     }
+}
+
+//キャンバスに描画する
+function drawCanvas() {
+    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+    viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);　//ベースマップの描画
+    drawMapRepeat(); //繰り返しマップの描画
+    drawObjects(); //オブジェクトの描画（キャラクター/ツール）
+    drawMainCharacter(); //メインキャラの描画
 }
 
 /////////////////////////////////////////////////////////テスト
@@ -356,6 +388,26 @@ function drawMapRepeat() {
     if (mapRepeat.length != 0) doing++; //マップリピートが0の場合、無限に増えていくのを防ぐためにこういう風に書いている。
 }
 
+//オブジェクトを描画する
+function drawObjects() {
+    for (var i=0; i<mapCharaObjects.length; i++) {
+        //とりあえず固定で表示するだけならこれ
+        //キャラオブジェクトの描画位置は、設定の固定位置＋drawImage分ずらしている点がみそ
+        viewContext.drawImage(document.getElementById(mapCharaObjects[i][2]), (mapCharaObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapCharaObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+        //viewContext.設定の固定位置＋drawImage分ずらしている(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);　//ベースマップの描画点がみそ
+        //ここに動的にキャラオブジェクトを表示するロジックを書いていく（とりあえず、優先度的には低め）。
+        //メモ
+        //一定時間で方向転換の判定（時間のカウントを変数に持っておかないとだな、、）
+        //中には方向転換をしたくないキャラもいるだろうから、それをどうするか、
+        //話かけたら方向を変えるとか、そう言う細かいのもできるな、だんだんめんどくさくなってきた。
+        //足踏みの実装
+    }
+    for (var i=0; i<mapToolObjects.length; i++) {
+        //とりあえず固定で表示するだけならこれ
+        viewContext.drawImage(document.getElementById(mapToolObjects[i][2]), (mapToolObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapToolObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+    }
+}
+
 //プロジェクトのjsonをすべてオブジェクトにロードする
 function loadJsonToObj() {
     //マップのオブジェクトをロードする
@@ -390,21 +442,70 @@ function loadProjectData() {
     mainCharaPosY = projectDataObj['startPosY'] * mapTipLength;
 }
 
-//メインキャラクターをロードする
-function loadMainCharacter() {
-    var mainCharaArray = [
-        '/rpg-player/public/image/mainCharacterLeft.png',
+//プロジェクトのツールをロードする
+function loadPrjTools() {
+    var toolsElement = document.getElementsByClassName('prjTools');
+    var tools = Array.from(toolsElement);
+    tools.forEach(function(tool) {
+        prjTools[tool.id] = new Object();
+        prjTools[tool.id]['name'] = tool.name;
+        prjTools[tool.id]['description'] = tool.value;
+    });
+}
+
+//画像をロードする
+function loadImages() {
+    //まずは主人公画像（デフォルト→参画パンツ、登録画像があれば上書きする）
+    var mainCharaArray = [];
+    mainCharaArray = [
+        //三角パンツ
+        '/rpg-player/public/image/mainCharacterDown.png',
+        '/rpg-player/public/image/mainCharacterDown.png',
+        '/rpg-player/public/image/mainCharacterDown.png',
+        '/rpg-player/public/image/mainCharacterUp.png',
+        '/rpg-player/public/image/mainCharacterUp.png',
         '/rpg-player/public/image/mainCharacterUp.png',
         '/rpg-player/public/image/mainCharacterRight.png',
-        '/rpg-player/public/image/mainCharacterDown.png',
+        '/rpg-player/public/image/mainCharacterRight.png',
+        '/rpg-player/public/image/mainCharacterLeft.png',
+        '/rpg-player/public/image/mainCharacterLeft.png',
     ]
     for (i=0; i<mainCharaArray.length; i++) {
         var imgObj = new Image();
         imgObj.src = mainCharaArray[i];
         mainCharaImgArray.push(imgObj);
     }
+    //ここでprojectData.jsonの、mainCharaプロパティを取得、あれば三角パンツを上書きする
+    //なければ、三角パンツをそのまま使う。
+    if (projectDataObj.hasOwnProperty('mainChara')) {
+            if (projectDataObj['mainChara']['f'] != "") mainCharaImgArray[0] = document.getElementById(projectDataObj['mainChara']['f']);
+            if (projectDataObj['mainChara']['fr'] != "") mainCharaImgArray[1] = document.getElementById(projectDataObj['mainChara']['fr']);
+            if (projectDataObj['mainChara']['fl'] != "") mainCharaImgArray[2] = document.getElementById(projectDataObj['mainChara']['fl']);
+            if (projectDataObj['mainChara']['b'] != "") mainCharaImgArray[3] = document.getElementById(projectDataObj['mainChara']['b']);
+            if (projectDataObj['mainChara']['br'] != "") mainCharaImgArray[4] = document.getElementById(projectDataObj['mainChara']['br']);
+            if (projectDataObj['mainChara']['bl'] != "") mainCharaImgArray[5] = document.getElementById(projectDataObj['mainChara']['bl']);
+            if (projectDataObj['mainChara']['r'] != "") mainCharaImgArray[6] = document.getElementById(projectDataObj['mainChara']['r']);
+            if (projectDataObj['mainChara']['rr'] != "") mainCharaImgArray[7] = document.getElementById(projectDataObj['mainChara']['rr']);
+            if (projectDataObj['mainChara']['l'] != "") mainCharaImgArray[8] = document.getElementById(projectDataObj['mainChara']['l']);
+            if (projectDataObj['mainChara']['ll'] != "") mainCharaImgArray[9] = document.getElementById(projectDataObj['mainChara']['ll']);
+
+    }
     //ロード時は下向きで表示
-    mainCharaImg = mainCharaImgArray[3];
+    mainCharaImg = mainCharaImgArray[0];
+
+
+    //リアクション表示用画像
+    reactionArray = [
+        '/rpg-player/public/image/bikkuri.png',
+        '/rpg-player/public/image/heart.png',
+        '/rpg-player/public/image/ikari.png',
+        '/rpg-player/public/image/ase.png',
+    ]
+    for (i=0; i<reactionArray.length; i++) {
+        var imgObj = new Image();
+        imgObj.src = reactionArray[i];
+        reactionImgArray.push(imgObj);
+    }
 }
 
 //キャンバスセッティング
@@ -427,8 +528,45 @@ function showStartProject() {
 
 }
 
+//上下の場合の左右切り替えフラグ
+var sideSwitchFlg = true;
 //メインキャラクターを表示する
 function drawMainCharacter() {
+    //歩くアニメーションはここで実装する
+    //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
+    switch (scrollDir) {
+        case 'left': 
+            if (scrollPos == 3) mainCharaImg = mainCharaImgArray[9];
+            if (scrollPos == 25) mainCharaImg = mainCharaImgArray[8];
+            break;
+        case 'up':
+            //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+            if (sideSwitchFlg) {
+                if (scrollPos == 3) mainCharaImg = mainCharaImgArray[4];
+                if (scrollPos == 25) mainCharaImg = mainCharaImgArray[3];   
+            } else {
+                if (scrollPos == 3) mainCharaImg = mainCharaImgArray[5];
+                if (scrollPos == 25) mainCharaImg = mainCharaImgArray[3];   
+            } 
+            break;
+        case 'right':
+            if (scrollPos == 3) mainCharaImg = mainCharaImgArray[7];
+            if (scrollPos == 25) mainCharaImg = mainCharaImgArray[6];
+            break;
+        case 'down':
+            //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+            if (sideSwitchFlg) {
+                if (scrollPos == 3) mainCharaImg = mainCharaImgArray[1];
+                if (scrollPos == 25) mainCharaImg = mainCharaImgArray[0];   
+            } else {
+                if (scrollPos == 3) mainCharaImg = mainCharaImgArray[2];
+                if (scrollPos == 25) mainCharaImg = mainCharaImgArray[0];   
+            }  
+            break;
+    }
+    //上下の場合の左右切り替え
+    if (scrollPos == 31) sideSwitchFlg = sideSwitchFlg ? false : true;
+    //メインキャラを描画
     viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
 }
 
@@ -467,15 +605,17 @@ function keyDownHandler(evt) {
                 case 65: //Aボタン
                     //はいいいえを選んだ処理、質問イベントを終了する
                     questionFlg = false; //質問フラグを戻す
-                    //描画を元に戻す（会話ウィンドウ、質問ウィンドウをクリア）
-                    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-                    viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
-                    drawMainCharacter();
+                    //画面クリア
+                    drawCanvas();
                     if (eventIndex+1 != events.length) {
                         //次のイベントがあったら次のイベント呼び出し
                         //はいいいえの結果は引数に与えない、呼び出し先で変数targetAnswerを参照する
                         eventIndex++;
-                        doEvents();
+                        if(doingEvtType == 'map') {
+                            doEvents();
+                        } else {
+                            doObjectEvents();
+                        }
                     } else {
                         eventIndex = 0;
                         drawFlg = true;
@@ -510,7 +650,8 @@ function keyDownHandler(evt) {
                     case 65: //Aボタン
                         switch (targetBattleOption) {
                             case 0: //たたかう
-                                
+                                //
+
                             break;
                             case 1: //逃げる
                                 //battleFlg = false;
@@ -528,41 +669,212 @@ function keyDownHandler(evt) {
                         break;
                 }
             }
+
+        //道具の時
+        } else if (toolFlg) {
+            //ツールウィンドウオープン時
+            var lineSpace = 32;
+            switch (evt.keyCode) {
+                case 38: //上
+                    //上を押した時点で、▼カーソルは100%削除
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace), 35, 35);
+
+                    //手持ちの最初になった場合
+                    if (currrentToolIndex == 0) {
+                        //前回カーソル表示部分クリア
+                        viewContext.fillStyle = 'white';
+                        viewContext.fillRect(200+2+10+450, (50+2)+(0*lineSpace), 35, 35);
+                        //手持ちの最初なのでreturn
+                        return;
+                    }
+
+                    //ツールのインデックスをずらす
+                    currrentToolIndex--;
+
+                    //手持ちの最初でない（上記条件） && カーソルが画面表示数の最初を指している && ずらした後のインデックスが、画面表示の最初の場合（＝も含む）
+                    if (screenToolIndex == 0 && currrentToolIndex >= 0) {
+                        var res = showHaveTools(currrentToolIndex);
+                        viewContext.fillStyle = 'black';
+                        if (currrentToolIndex != 0) {
+                            //ずらした後のインデックスが手持ちの最初になった場合のみ、▼を表示しない（最初より大きい場合は、ここで▲を表示する）
+                            viewContext.fillText('▲', 200+2+10+450, (50+2)+(0*lineSpace)); //450は適当な横ずらし用の数字
+                        }
+                        //最初の行にカーソルを当てる
+                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(0*lineSpace));
+
+                    } else {
+                    //カーソルを上に表示
+                        viewContext.fillStyle = 'white';
+                        viewContext.fillRect(200+2, 50+2, 50, 250-4);//前回カーソル表示部分クリア
+                        //カーソルを一行上に表示
+                        screenToolIndex--; //画面内▶︎indexを上にずらす
+                        viewContext.fillStyle = 'black';
+                        if (screenToolIndex == 0 && currrentToolIndex > 0) {
+                            //ずらした後のインデックスが手持ちの最初になった場合のみ、▼を表示しない（最初より大きい場合は、ここで▲を表示する）
+                            viewContext.fillText('▲', 200+2+10+450, (50+2)+(0*lineSpace)); //450は適当な横ずらし用の数字
+                        }
+                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(screenToolIndex*lineSpace)); //表示位置を一行下げる（currrentToolIndexを使う）
+                    }
+                    //説明を表示
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4); //前回表示クリア
+                    toolDescription(prjTools[haveTools[currrentToolIndex]]['description']);
+
+                break;
+                case 40: //下
+                    //下を押した時点で、▼カーソルは100%削除
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(200+2+10+450, (50+2)+(0*lineSpace), 35, 35);
+
+                    //現在のインデックスをずらす前に、インデックスが手持ちの最大だったらreturn（画面表示数に関係なく）
+                    if (currrentToolIndex == haveTools.length-1) return;
+                    
+                    //インデックスをずらす
+                    currrentToolIndex++;
+
+                    if (screenToolIndex == maxToolDispNum-1 && currrentToolIndex >= maxToolDispNum-1) {
+                    //手持ちの最大でない && カーソルが画面表示数の最大を指している && ずらした後のインデックスが、画面表示上限数「以上」の場合（＝も含む）
+
+                        var res = showHaveTools(currrentToolIndex - (maxToolDispNum-1));
+                        viewContext.fillStyle = 'black';
+                        if (currrentToolIndex != haveTools.length-1) {
+                            //ずらした後のインデックスが手持ちの最大になった場合のみ、▼を表示しない（最大より大きい場合は、ここで▼を表示する）
+                            viewContext.fillText('▼', 200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace)); //450は適当な横ずらし用の数字
+                        }
+                        //最下行にカーソルを当てる
+                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+((maxToolDispNum-1)*lineSpace));
+
+                    } else {
+                    //カーソルを下に表示
+                        viewContext.fillStyle = 'white';
+                        viewContext.fillRect(200+2, 50+2, 50, 250-4);//前回カーソル表示部分クリア
+                        //カーソルを一行下に表示
+                        screenToolIndex++; //画面内▶︎indexを下にずらす
+                        viewContext.fillStyle = 'black';
+                        if (screenToolIndex == maxToolDispNum-1 && currrentToolIndex < haveTools.length-1) {
+                            //ずらした後のインデックスが手持ちの最大になった場合のみ、▼を表示しない（最大より大きい場合は、ここで▼を表示する）
+                            viewContext.fillText('▼', 200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace)); //450は適当な横ずらし用の数字
+                        }
+                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(screenToolIndex*lineSpace)); //表示位置を一行下げる（currrentToolIndexを使う）
+                    }
+                    //説明を表示
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4); //前回表示クリア
+                    toolDescription(prjTools[haveTools[currrentToolIndex]]['description']);
+                    if (currrentToolIndex == haveTools.length-1) {
+                        //手持ちの最後になった場合、▼を消す
+                        viewContext.fillStyle = 'white';
+                        viewContext.fillRect(200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace), 35, 35);//前回カーソル表示部分クリア
+                    }
+                break;
+                case 84: //tキー
+                    sound('bgm/分類無し効果音/キャンセル2.mp3');
+                    toolFlg = false;
+                    currrentToolIndex = 0; // ツールインデックスを0に戻す
+                    //再描画
+                    // viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+                    // viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
+                    // drawMainCharacter();
+                    //drawCanvas();
+                    eventIndex = 0;
+                    drawFlg = true;
+                    draw(); //再描画開始
+                break;
+                default:
+                    //上記以外のキーは受け付けない
+                return;
+                break;
+            }
+
+        } else if(effectFlg) {
+            switch (evt.keyCode) {
+                case 65: //Aボタン
+                    effectFlg = false;
+                    //次のイベントorイベント終了
+                    if (eventIndex+1 != events.length) {
+                       //画面をクリア
+                        drawCanvas();
+                        eventIndex++;
+                        if(doingEvtType == 'map') {
+                            doEvents();
+                        } else {
+                            doObjectEvents();
+                        }
+                    } else {
+                        eventIndex = 0;
+                        drawFlg = true;
+                        draw(); //再描画開始
+                    }
+                    break;
+            }
+
+
         } else {
             switch (evt.keyCode) {
                 case 37: //左
                     scrollDir = 'left';
                     mainCharaDir = scrollDir;
-                    mainCharaImg =  mainCharaImgArray[0];
+                    mainCharaImg =  mainCharaImgArray[8];
                     break;
         
                 case 38: //上
                     scrollDir = 'up';
                     mainCharaDir = scrollDir;
-                    mainCharaImg =  mainCharaImgArray[1];
+                    mainCharaImg =  mainCharaImgArray[3];
                     break;
         
                 case 39: //右
                     scrollDir = 'right';
                     mainCharaDir = scrollDir;
-                    mainCharaImg =  mainCharaImgArray[2];
+                    mainCharaImg =  mainCharaImgArray[6];
                     break;
         
                 case 40: //下
                     scrollDir = 'down';
                     mainCharaDir = scrollDir;
-                    mainCharaImg =  mainCharaImgArray[3];
+                    mainCharaImg =  mainCharaImgArray[0];
                     break;
                 
                 case 65: //Aボタン
+                    //オブジェクトのチェック（イベントより優先度高）
+                    var res = checkObject(scrollDir);
+                    if (res != false) {
+                        maptipObj = res;
+                        doingEvtType = 'obj';
+                        doObjectEvents();
+                    }                    
+
                     //トリガーAボタンのチェック
                     var res = checkTrigger('Aボタン', scrollDir);
                     if (res != false) {
                         maptipObj = res;
+                        doingEvtType = 'evt';
                         doEvents();
                     }
                     return;
                     break;
+
+                case 84: //Tボタン
+                    //道具モード
+                    drawFlg = false;
+                    toolFlg = true;
+                    var res = showHaveTools();
+                    sound('bgm/分類無し効果音/キャンセル1.mp3');
+                    if (res) viewContext.fillText('▶︎', 200+2+10, 50+2+5);
+                    return;
+                    break;
+
+                case 69: //Eボタン
+                    drawFlg = false;
+                    console.log("aaaaaaaaaaaaa");
+                    //ここで音を出す
+                    viewCanvas.classList.add("yokoburu");
+                    window.setTimeout(function(){
+                        viewCanvas.classList.remove("yokoburu");
+                    }, 2000);
+
+
     
                 default:
                     //上記以外のキーは受け付けない
@@ -571,9 +883,144 @@ function keyDownHandler(evt) {
             }
             if(checkStartMoveEvent()) {
                 scrollState = true;
+            } else {
+                //一マス進めなかった場合
+                //進入フラグを初期化する。
+                enterFlg = false;
             }
         }
     }   
+}
+
+var currrentToolIndex = 0; //現在選択中のツールインデックス用の変数、ここでは使わず、キーイベント受付のタイミングで使用
+var screenToolIndex = 0; //画面上の▶︎ののインデックス、ここでは使わず、キーイベント受付のタイミングで使用
+var maxToolDispNum = 7; //画面に表示する道具のmaxの数
+ 
+//道具画面を表示する
+function showHaveTools(index = -1) { //index：画面に表示する道具のインデックス
+    //会話ウィンドウを黒でクリア
+    viewContext.fillStyle = 'black';
+    viewContext.fillRect(200, 50, 500, 270);
+    //会話ウィンドウを黒でクリア
+    viewContext.fillStyle = 'white';
+    viewContext.fillRect(200+2, 50+2, 500-4, 270-4);
+
+    viewContext.fillStyle = 'black';
+    viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
+    //会話ウィンドウを黒でクリア
+    viewContext.fillStyle = 'white';
+    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
+    //ここで手持ちの道具を表示するロジック
+    //会話表示メタデータセット
+    viewContext.fillStyle = 'black';
+    viewContext.textBaseline = 'top';
+    viewContext.font = talkFont;
+    var lineSpace = 32;
+    if (haveTools.length == 0) {
+        viewContext.fillText('道具はありません', 200+2+10, (50+2+3)+(0*lineSpace));
+        return false;
+    } else if (index < 0) {
+        //最初はcurrrentToolIndexは必ず0で表示    
+        for (var i=0; i<haveTools.length; i++) {
+            if (i == maxToolDispNum) break; //手持ちのインデックスが画面表示数のmaxになったらbreak
+            viewContext.fillStyle = 'black';
+            viewContext.fillText(prjTools[haveTools[i]]['name'], 200+2+50, (50+2+5)+(i*lineSpace)); //50はカーソルの間隔よう
+        }
+        toolDescription(prjTools[haveTools[0]]['description']);
+    } else {
+        for (var i=0; i<haveTools.length; i++) {
+            if (i == maxToolDispNum) break; //手持ちのインデックスが画面表示数のmaxになったらbreak
+            viewContext.fillStyle = 'black';
+            viewContext.fillText(prjTools[haveTools[i+index]]['name'], 200+2+50, (50+2+5)+(i*lineSpace)); //50はカーソルの間隔よう
+        }
+        toolDescription(prjTools[haveTools[0+index]]['description']);
+    }
+
+    return true;
+}
+
+//道具の説明文を表示する
+function toolDescription(description) {
+                    //道具の説明を、一行ずつに分割
+                    //var talkContent = prjTools[currrentToolIndex]['description'];
+                    var talkContent = description;
+                    talkLines[talkLineIndex] = '';
+                    for (var i=0; i<talkContent.length; i++) {
+                        talkLines[talkLineIndex] += talkContent[i];
+                        talkLineLength = viewContext.measureText(talkLines[talkLineIndex]);
+                        if (talkLineLength.width > talkLineMaxLength-mapTipLength-mapTipLength) {
+                            talkLineIndex++;
+                            talkLines[talkLineIndex] = '';
+                        }
+                    }
+                    //会話行を会話ページ単位に分割
+                    talkPages[talkPageIndex] = [];
+                    for (var i=0; i<talkLines.length; i++) {
+                        if (i != 0 && i%3 == 0) {
+                            talkPageIndex++;
+                            talkPages[talkPageIndex] = [];
+                        }
+                        talkPages[talkPageIndex].push(talkLines[i]);
+                    }
+                    //会話インデックスを初期化
+                    talkPageIndex = 0;
+                        viewContext.fillStyle = 'black';
+                        var lineSpace = 0; //行間調整ようの変数
+                        //ページが持っている行の分会話を表示（行の折り返しの高さは最後の(i*mapTipLength)の部分）
+                        //行の分ループ（行は最高３ページで格納してある）
+                        for (var i=0; i<talkPages[talkPageIndex].length; i++) {
+                            if (i != 0) {
+                                lineSpace = 8;
+                            }
+                            //１文字ずつ描画（ちょっと遅らせる）。その時に音も出す。
+                            var slideX = ''; //１文字を描画するために、横にずらす分を加算していく変数
+                            for (var j=0; j<talkPages[talkPageIndex][i].length; j++) {
+                                var mSlideX = viewContext.measureText(slideX);
+                                viewContext.fillText(talkPages[talkPageIndex][i][j], talkWinStartX+mSlideX.width+2+10, talkWinStartY+2+10+(i*mapTipLength)+(i*lineSpace));
+                                //描画した文字の長さ分、スライド値を増やす
+                                slideX += talkPages[talkPageIndex][i][j];
+                                //一瞬待つ（いったん挫折！！時間ある時にしっかり取り組むとする、、）
+                                //sleep(100);
+                                //stop();
+                                // 5秒後にメッセージを表示
+                                //console.log('5秒経過しました！');
+                            }
+                            //行間リセット
+                            lineSpace = 0;
+                        }
+                            talkLineLength = 0; //会話一行長さ
+        talkLines = []; //会話行数
+        talkLineIndex = 0; //会話行インデックス
+        talkPages = []; //会話ページ
+        talkPageIndex = 0; //会話ページインデックス
+}
+
+function dummy() {
+    viewContext.fillStyle = 'black';
+    var lineSpace = 0; //行間調整ようの変数
+    //ページが持っている行の分会話を表示（行の折り返しの高さは最後の(i*mapTipLength)の部分）
+    //行の分ループ（行は最高３ページで格納してある）
+    for (var i=0; i<talkPages[talkPageIndex].length; i++) {
+        if (i != 0) {
+            lineSpace = 8;
+        }
+        //１文字ずつ描画（ちょっと遅らせる）。その時に音も出す。
+        var slideX = ''; //１文字を描画するために、横にずらす分を加算していく変数
+        for (var j=0; j<talkPages[talkPageIndex][i].length; j++) {
+            var mSlideX = viewContext.measureText(slideX);
+            viewContext.fillText(talkPages[talkPageIndex][i][j], talkWinStartX+mSlideX.width+2+10, talkWinStartY+2+10+(i*mapTipLength)+(i*lineSpace));
+            //描画した文字の長さ分、スライド値を増やす
+            slideX += talkPages[talkPageIndex][i][j];
+            //一瞬待つ（いったん挫折！！時間ある時にしっかり取り組むとする、、）
+            //sleep(100);
+            //stop();
+            // 5秒後にメッセージを表示
+            //console.log('5秒経過しました！');
+
+        }
+        //行間リセット
+        lineSpace = 0;
+    }
 }
 
 //動き始めのイベントチェック
@@ -590,6 +1037,7 @@ function checkStartMoveEvent() {
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
             if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
                 if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
         case 'up':  
@@ -601,6 +1049,7 @@ function checkStartMoveEvent() {
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
             if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
                 if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
         case 'right':  
@@ -612,6 +1061,7 @@ function checkStartMoveEvent() {
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
             if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
                 if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
         case 'down':
@@ -623,10 +1073,73 @@ function checkStartMoveEvent() {
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
             if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
                 if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
     }
     return true;
+}
+
+
+//オブジェクトをチェックする（Aボタンのみ)
+function checkObject(direction) {
+    switch (direction) {
+        case 'left':
+            //マップ外でないかチェック
+            if (mainCharaPosX == 0) return false;
+            //オブジェクトがあるかチェック
+            var nextCellY = mainCharaPosY/mapTipLength;
+            var nextCellX = mainCharaPosX/mapTipLength-1;
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            if(nextCell.hasOwnProperty('object')) {
+                return nextCell['object'];
+            } else {
+                return false;
+            }
+            break;
+        case 'up':  
+            //マップ外でないかチェック 
+            if (mainCharaPosY == 0) return false;
+            //オブジェクトがあるかチェック
+            var nextCellY = mainCharaPosY/mapTipLength-1;
+            var nextCellX = mainCharaPosX/mapTipLength;
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            if(nextCell.hasOwnProperty('object')) {
+                return nextCell['object'];
+            } else {
+                return false;
+            }
+            break;
+        case 'right':  
+            //マップ外でないかチェック 
+            if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+            //オブジェクトがあるかチェック
+            var nextCellY = mainCharaPosY/mapTipLength;
+            var nextCellX = mainCharaPosX/mapTipLength+1;
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            if(nextCell.hasOwnProperty('object')) {
+                return nextCell['object'];
+            } else {
+                return false;
+            }
+            break;
+        case 'down':
+            //マップ外でないかチェック 
+            if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+            //オブジェクトがあるかチェック
+            var nextCellY = mainCharaPosY/mapTipLength+1;
+            var nextCellX = mainCharaPosX/mapTipLength;
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            if(nextCell.hasOwnProperty('object')) {
+                return nextCell['object'];
+            } else {
+                return false;
+            }
+            break;
+        default:
+            return false;
+            break;
+    }
 }
 
 //トリガーをチェックする
@@ -718,6 +1231,91 @@ function checkTrigger(trigger, direction) {
     }
 }
 
+//マップチップに設定されたオブジェクトのイベントを実行する
+function doObjectEvents() {
+    //オブジェクトの種類を取得
+    var objName = maptipObj['objName'];
+    switch (objName) {
+        case 'character':
+            //イベントのキーとキーインデックスの取得
+            events = Object.keys(maptipObj['events']);
+            var evtFullName = events[eventIndex];
+            var index = evtFullName.indexOf('_');
+            var evtName = evtFullName.substr(index+1);
+            switch (evtName) {
+                case 'talk':
+                    var talkContent =  maptipObj['events'][evtFullName]['talkContent'];
+                    if (maptipObj['events'][evtFullName].hasOwnProperty('wipe')) {
+                        var wipe =  maptipObj['events'][evtFullName]['wipe'];
+                    }
+                    doTalk(talkContent, wipe);
+                break;
+                case 'question':
+                    var questionContent =  maptipObj['events'][evtFullName]['questionContent'];
+                    if (maptipObj['events'][evtFullName].hasOwnProperty('wipe')) {
+                        var wipe =  maptipObj['events'][evtFullName]['wipe'];
+                    }
+                    doQuestion(questionContent, wipe);
+                break;
+                case 'transition':
+                    var trasitionDataObj =  maptipObj['events'][evtFullName];
+                    doTransition(trasitionDataObj);
+                break;
+                case 'battle':
+                    var battleData =  maptipObj['events'][evtFullName];
+                    doBattle(battleData);
+                break;
+                case 'tool':
+                    var toolData =  maptipObj['events'][evtFullName];
+                    doTool(toolData);
+                case 'effect':
+                    var effectData =  maptipObj['events'][evtFullName];
+                    doEffect(effectData);
+                break;
+            }  
+        break;
+
+        case 'tool':
+            // ツールの場合、イベントプロパティが設定されていないので、ここでよしなに作成
+            events = ['99999999999999_talk']; //eventsを入れないと、doEventsでこけるからね
+            haveTools.push(maptipObj['toolId']);
+            var talkContent = "「"+ prjTools[maptipObj['toolId']]['name'] + "」を手に入れた！";
+            //音を出す。
+            soundToolFlg = true;
+            doTalk(talkContent);
+            mapCharaObjects.splice();
+
+            //マップオブジェクトからオブジェクトを削除して、オブジェクトを再ロード
+            var nextCellY;
+            var nextCellX;
+            switch (scrollDir) {
+                case 'left':
+                    nextCellY = mainCharaPosY/mapTipLength;
+                    nextCellX = mainCharaPosX/mapTipLength-1;
+                break;
+                case 'up':  
+                    //まずはマップオブジェクトから削除
+                    nextCellY = mainCharaPosY/mapTipLength-1;
+                    nextCellX = mainCharaPosX/mapTipLength;
+                break;
+                case 'right':  
+                    nextCellY = mainCharaPosY/mapTipLength;
+                    nextCellX = mainCharaPosX/mapTipLength+1;
+                break;
+                case 'down':
+                    nextCellY = mainCharaPosY/mapTipLength+1;
+                    nextCellX = mainCharaPosX/mapTipLength;
+                break;
+                default:
+                break;
+            }
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            delete nextCell.object;
+            loadSpecialMapChips();
+        break;
+    } 
+}
+
 //マップチップに設定されたイベントを実行する
 function doEvents() {
     //イベントのキーとキーインデックスの取得
@@ -729,11 +1327,17 @@ function doEvents() {
     switch (evtName) {
         case 'talk':
             var talkContent =  maptipObj[evtFullName]['talkContent'];
-            doTalk(talkContent);
+            if (maptipObj[evtFullName].hasOwnProperty('wipe')) {
+                var wipe =  maptipObj[evtFullName]['wipe'];
+            }
+            doTalk(talkContent, wipe);
         break;
         case 'question':
             var questionContent =  maptipObj[evtFullName]['questionContent'];
-            doQuestion(questionContent);
+            if (maptipObj[evtFullName].hasOwnProperty('wipe')) {
+                var wipe =  maptipObj[evtFullName]['wipe'];
+            }
+            doQuestion(questionContent, wipe);
         break;
         case 'transition':
             var trasitionDataObj =  maptipObj[evtFullName];
@@ -743,8 +1347,160 @@ function doEvents() {
             var battleData =  maptipObj[evtFullName];
             doBattle(battleData);
         break;
+        case 'tool':
+            var toolData =  maptipObj[evtFullName];
+            doTool(toolData);
+        break;
+        case 'effect':
+            var effectData =  maptipObj[evtFullName];
+            doEffect(effectData);
+        break;
     }
 }
+
+
+var effectFlg = false;
+//エフェクト実行
+function doEffect(effectData) {
+    console.log(effectData);
+    switch(effectData['type']){
+        case 'shake':
+            //drawを止める
+            drawFlg = false;
+            effectFlg = true;
+
+            //cssはここのサイトから作成（https://mo2nabe.com/css-shake-elements/）
+
+            //ゆらす
+            if (effectData['shakeType'] == 'v') {
+            //縦揺れ
+                viewCanvas.classList.add("tateburu");
+                window.setTimeout(function(){
+                    viewCanvas.classList.remove("tateburu");
+                }, 1000);//縦揺れは短めに設定
+
+            } else if (effectData['shakeType'] == 'h') {
+            //横揺れ
+                viewCanvas.classList.add("yokoburu");
+                window.setTimeout(function(){
+                    viewCanvas.classList.remove("yokoburu");
+                }, 2000);//横揺れはちょっと長く
+
+            } else {
+
+            }
+            //音を出す
+            var soundPath = effectData['sound'];
+            //音源場所から、持ってきてならす（既存サンプル参考に）
+            sound(soundPath);
+
+        break;
+        case 'reaction':
+            //drawを止める
+            drawFlg = false;
+            effectFlg = true;
+            //reactTypeのマークを表示する
+            // '/rpg-player/public/image/bikkuri.png',
+            // '/rpg-player/public/image/heart.png',
+            // '/rpg-player/public/image/ikari.png',
+            // '/rpg-player/public/image/ase.png',
+            var reactImage;
+            switch(effectData['reactType']) {
+                case 'びっくり':
+                reactImage = reactionImgArray[0];
+                break;
+                case 'ハート':
+                reactImage = reactionImgArray[1];
+                break;
+                case 'いかり':
+                reactImage = reactionImgArray[2];
+                break;
+                case '汗':
+                reactImage = reactionImgArray[3];
+                break;
+            }
+
+            viewContext.drawImage(reactImage,viewCanvasHalfWidth,viewCanvasHalfHeight-32);
+            // window.setTimeout(function(){
+            //     drawCanvas();
+            // }, 2000);
+
+            //音を出す
+            var soundPath = effectData['sound'];
+            //音源場所から、持ってきてならす（既存サンプル参考に）
+            sound(soundPath);
+
+        break;
+        case 'animation':
+        break;
+
+    }
+
+
+
+
+
+}
+
+//道具
+var enterFlg = false; // 進入があった時点でtrueにするフラグ。
+var goBackFlg = false; //一歩戻るフラグ
+function doTool(toolData){
+    //doTalk呼び出せばOK?（コンテンツは、OKかNGか判断して、渡す）
+    //後は手持ちに加えたり、削除したり
+    //type(get,use), toolId, OKtalkContent, NGtalkContent, delToolFlg, wipe
+    //typeを取得
+    var toolType = toolData['type'];
+    //typeで分岐
+    if (toolType == 'get') {
+        //もらい
+        //手持ちに加えて、〇〇をもらった！と、ワイプだけ渡して、終わり
+        haveTools.push(toolData['toolId']);
+        var talkContent = "「"+ prjTools[toolData['toolId']]['name'] + "」を手に入れた！";
+        //音を出す。
+        soundToolFlg = true;
+        doTalk(talkContent);
+    } else {
+        //使用
+        //ツールを持ってるか判断。あればokコンテンツ、なければngコンテンツとワイプを渡す。
+        haveFlg = false;
+        var index = 0;
+        for(var i=0; i<haveTools.length; i++) {
+            if(haveTools[i] == toolData['toolId']) {
+                haveFlg = true;
+                break;  
+            } 
+            index++;            
+        }
+
+        var talkContent = '';
+        if(haveFlg) {
+            talkContent = toolData['OKtalkContent'];
+        } else {
+            talkContent = toolData['NGtalkContent'];
+        }
+        doTalk(talkContent, toolData['wipe']);
+
+        //道具削除フラグを見て、手持ちから削除
+        if (toolData['delToolFlg'] == 1){
+            haveTools.splice(index, 1);
+        }
+
+        //使用判定がngだった場合、以降のイベントを行わない。
+        if(!haveFlg) {
+            //eventsから以降のイベントを削除
+            events.splice(eventIndex+1);
+            //トリガー進入で発生していた場合、一歩戻る
+            if(enterFlg) {
+                //ここで一歩戻るフラグを立てておく。
+                goBackFlg = true;
+                //進入フラグは初期化しておく
+                enterFlg = false;
+            }
+        }
+    }
+}
+
 
 //バトル
 function doBattle(battleData) {
@@ -838,21 +1594,21 @@ function doTransition(trasitionDataObj) {
     var transitionDirection = trasitionDataObj['transitionDirection'];
     switch (transitionDirection) {
         case 'left':
-            mainCharaImg = mainCharaImgArray[0];
+            mainCharaImg = mainCharaImgArray[8];
             break;
         case 'up':
-            mainCharaImg = mainCharaImgArray[1];
+            mainCharaImg = mainCharaImgArray[3];
             break;
         case 'right':
-            mainCharaImg = mainCharaImgArray[2];
+            mainCharaImg = mainCharaImgArray[6];
             break;
         case 'down':
-            mainCharaImg = mainCharaImgArray[3];
+            mainCharaImg = mainCharaImgArray[0];
             break;
     }
 
-    // マップ繰り返しのロード
-    loadMapRepaet();
+    // 特殊マップチップのロード
+    loadSpecialMapChips();
 
     //遷移先で再描画開始
     //遷移前に描画を止めていない場合（進入での遷移）は、drawを呼ばない（呼ぶと二重に呼ばれてキャラの動きは倍速になる）
@@ -861,16 +1617,48 @@ function doTransition(trasitionDataObj) {
         drawFlg = true;
         draw();
     }
+
+    //※※遷移イベントは、必ずそのマップチップの最後のイベントに設定する
+    // if (eventIndex+1 != events.length) {
+    //     eventIndex++;
+    //     if(doingEvtType == 'map') {
+    //         doEvents();
+    //     } else {
+    //         doObjectEvents();
+    //     }
+    // } else {
+    //     eventIndex = 0;
+    //     //drawFlg = true;
+    //     //draw(); //再描画開始
+    // }
+
 }
 
-function loadMapRepaet() {
+// 特殊マップチップのロード
+// 初期表示と画面遷移時と、オブジェクト削除/追加時などにコールする
+function loadSpecialMapChips() {
     mapRepeat = [];
+    mapCharaObjects = [];
+    mapToolObjects = [];
     for(let k in currrentMapObj) {
         //console.log(currrentMapObj[k]);
         for(let l in currrentMapObj[k]) {
+            //繰り返しマップチップ
             if (currrentMapObj[k][l]['maptipType'] == 6) {
                 var aryXY = [l, k];
                 mapRepeat.push(aryXY);
+            }
+            //キャラオブジェクト/ツールオブジェクト
+            if (currrentMapObj[k][l].hasOwnProperty('object') == true) {
+                var aryXYO = [l, k, currrentMapObj[k][l]['object']['imgName']];
+                switch (currrentMapObj[k][l]['object']['objName']) {
+                    case 'character' :
+                    mapCharaObjects.push(aryXYO);
+                    break;
+                    case 'tool' :
+                    mapToolObjects.push(aryXYO);
+                    break;
+                }
             }
         }
     }
@@ -879,11 +1667,23 @@ function loadMapRepaet() {
 
 // param1 : 会話内容
 // param2 : イベントで設定されている場合true、質問などで会話を表示するために流用する場合はfalseを指定する
-function doTalk(talkContent) {    
+function doTalk(talkContent, wipe = '') {    
     //drawを止める
     drawFlg = false;
     //会話中にする
     talkFlg = true;
+
+    //ワイプがあればワイプを表示
+    if (wipe != '') {
+        //viewContext.fillStyle = 'black';
+        //viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
+        //会話ウィンドウを黒でクリア
+        viewContext.fillStyle = 'white';
+        viewContext.fillRect(talkWinStartX, talkWinStartY-100, 100, 100);
+        wipeImg = document.getElementById(wipe);
+        viewContext.drawImage(wipeImg, talkWinStartX+2, talkWinStartY-100+2);
+    }
+
     //会話ウィンドウを黒でクリア
     viewContext.fillStyle = 'black';
     viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
@@ -919,9 +1719,9 @@ function doTalk(talkContent) {
     showTalkContents();
 }
 
-function doQuestion(questionContent) {
+function doQuestion(questionContent, wipe = '') {
     questionFlg = true;
-    doTalk(questionContent);
+    doTalk(questionContent, wipe);
 }
 
 function showYesNo(targetAnswerIndex) {
@@ -1025,6 +1825,14 @@ function showTalkContents() {
     //     // 指定ミリ秒間だけループさせる（CPUは常にビジー状態）
     //     while (new Date() - startMsec < waitMsec);
     // }
+
+    //音を出す。
+    if (soundToolFlg) {
+        sound('bgm/分類無し効果音/決定、ボタン押下5.mp3');
+        soundToolFlg = false;
+    } else {
+        sound('bgm/分類無し効果音/決定、ボタン押下35.mp3');
+    }
 }
 
 async function stop() {
@@ -1086,7 +1894,11 @@ function nextTalk() {
                 draw();
                 if (eventIndex+1 != events.length) {
                     eventIndex++;
-                    doEvents();
+                    if(doingEvtType == 'map') {
+                        doEvents();
+                    } else {
+                        doObjectEvents();
+                    }
                 } else {
                     eventIndex = 0;
                     //drawFlg = true;
@@ -1101,14 +1913,63 @@ function nextTalk() {
 
         } else if (eventIndex+1 != events.length) {
             //次のイベントがあったら
+            //画面をクリア
+            drawCanvas();
             //次のイベント呼び出し
             eventIndex++;
-            doEvents();
+            if(doingEvtType == 'map') {
+                doEvents();
+            } else {
+                doObjectEvents();
+            }
         } else {
+            //イベントが無くなったら
+            //イベントが無くなったタイミングで進入フラグ（ツール使用イベントで使用）を初期化
+            enterFlg = false;
+            //イベントインデックスを初期化
             eventIndex = 0;
+            //イベントが無くなったタイミングで一歩戻るフラグがtrueの場合、一歩戻る指令を出す
+            if(goBackFlg) {
+                var KEvent = "";
+                switch (scrollDir) {
+                    //scrollDirと逆の方向に一マス進む
+                    case 'left':   
+                        KEvent = new KeyboardEvent( "keydown", { keyCode: 39 });
+                        break;
+                    case 'up':   
+                        KEvent = new KeyboardEvent( "keydown", { keyCode: 40 });
+                        break;
+                    case 'right':   
+                        KEvent = new KeyboardEvent( "keydown", { keyCode: 37 });
+                        break;
+                    case 'down':   
+                        KEvent = new KeyboardEvent( "keydown", { keyCode: 38 });
+                        break;
+                }
+                //一歩戻る
+                document.body.dispatchEvent( KEvent );
+                //フラグを初期化
+                goBackFlg = false;
+            }
             //再描画開始
             drawFlg = true;
             draw();
         }
     }
 }
+
+function openHiddenInfo() {
+    var eles = document.getElementsByClassName('eachContainer');
+    eles = Array.from(eles);
+        eles.forEach(function(ele) {
+        ele.style.display = 'block';
+    });
+}
+
+
+
+
+
+
+
+
