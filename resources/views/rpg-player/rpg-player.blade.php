@@ -15,13 +15,10 @@
     @component('components.rpg-player-header')
 
     @endcomponent
-
-    <p></p>
     <canvas id="viewCanvas"></canvas>
-    <p>確認コマンド：console.log(mapObj);</p>
-    <button onclick="openHiddenInfo()">オープン</button>
-
     <div id="projectsContainer">
+        <p>確認コマンド：console.log(mapObj);</p>
+        <button onclick="openHiddenInfo()">オープン</button>
         <p id="projectName">{{$project}}</p>
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
         @foreach($pngFiles as $pngFile)
@@ -61,7 +58,7 @@
         @endforeach
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
         <!-- ツール用のコンテナ -->
-        <div id="tools" style="display:;">
+        <div id="tools" class="eachContainer">
             <div id="toolContainer">
                 <table border="1">
                     <tr style="background: skyblue">
@@ -82,6 +79,34 @@
                     @endforeach
             </div>
         </div>
+        <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
+        <!-- ターンチップ用のコンテナ -->
+        <div id="turnChipContainer" class="eachContainer">
+            <span style="background-color: yellow;">↓★★★★マップ交互★★★★</span>
+            @foreach($turnChips as $key1 => $prjDir)
+                <div id="turnChip_{{$key1}}_containter">
+                    <p id>■■■{{$key1}}</p> 
+                    @foreach($prjDir as $key2 => $turnChipDir)
+                        <p id="{{$key2}}">{{$key2}}</p>
+                        @foreach($turnChipDir as $chipPng)
+                            <img class="turn_{{$key2}}" id="{{$key2}}_{{$loop->index}}" alt="turnChip" src="../../map-editor/image/map-editor/map-chip/{{$key1}}/mapTurn/{{$key2}}/{{$chipPng}}">
+                        @endforeach
+                    @endforeach
+                </div>
+            @endforeach
+            <span style="background-color: yellow;">↓★★★★マップパス交互★★★★</span>
+            @foreach($turnPassChips as $key1 => $prjDir)
+                <div id="turnChipPass_{{$key1}}_containter">
+                    <p>■■■{{$key1}}</p> 
+                    @foreach($prjDir as $key2 => $turnPassChipDir)
+                        <p id="{{$key2}}">>{{$key2}}</p>
+                        @foreach($turnPassChipDir as $chipPng)
+                            <img class="turn_{{$key2}}" id="{{$key2}}_{{$loop->index}}" alt="turnChipPass" src="../../map-editor/image/map-editor/map-chip/{{$key1}}/mapTurnPass/{{$key2}}/{{$chipPng}}">
+                        @endforeach
+                    @endforeach
+                </div>
+            @endforeach        
+        </div>
     </div>
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
         @foreach($sounds as $sound)
@@ -91,8 +116,8 @@
                 <audio id={{$sound['path']}} preload="auto">
                     <!-- <source src="{{ asset('/sounds/bgm/SNES-Town01.mp3') }}" type="audio/mp3"> -->
                     <source src="{{ asset($sound['path']) }}" type="audio/mp3">
-                <p>※お使いのブラウザはHTML5のaudio要素をサポートしていないので音は鳴りません。</p>
-    </audio>
+                    <p>※お使いのブラウザはHTML5のaudio要素をサポートしていないので音は鳴りません。</p>
+                </audio>
             </div>
         @endforeach
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>

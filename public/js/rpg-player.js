@@ -36,6 +36,8 @@ var mapCharaObjects = [];
 var mapToolObjects = [];
 //現在選択中マップ繰り返しマップチップ
 var mapRepeat = [];
+//現在選択中マップ交互マップチップ
+var mapTurn = [];
 //現在選択中マップ名
 var currrentMapName;
 //現在選択中マップ画像
@@ -248,11 +250,12 @@ function drawCanvas() {
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
     viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);　//ベースマップの描画
     drawMapRepeat(); //繰り返しマップの描画
+    drawTurnChip(); //マップ交互の描画
     drawObjects(); //オブジェクトの描画（キャラクター/ツール）
     drawMainCharacter(); //メインキャラの描画
 }
 
-/////////////////////////////////////////////////////////テスト
+/////////////////////////////////////////////////////////テスト start
 var imgL = document.getElementById("l");
 var imgM = document.getElementById("m");
 var imgR = document.getElementById("r");
@@ -356,7 +359,7 @@ function drawOnotherCharacter() {
         }
         doing++;
 }
-/////////////////////////////////////////////////////////テスト
+/////////////////////////////////////////////////////////テスト end
 
 //海のような、繰り返して動いているマップチップを描画する
 //マップチップタイプ6（マップ繰り返し）のマップチップを繰り返し描画する
@@ -366,11 +369,6 @@ var shiftCountMax = mapTipLength;   //横に動くpxのMax。まあ１マップ�
 var doing = 0;                      //doNumと合わせて使用する。duNumは横流しの早さを決める数字。小さくすると、速くなる。
 var doNum = 30;                     //横流しの早さを決める。
 function drawMapRepeat() {
-    //var aryX = [1,3,5,7,9];
-    //var aryY = [1,4,7,10,13];
-    //var dummy = document.getElementById("dummy");
-    // mapRepeat = [[1,3],[3,5],[6,9],[8,10],[13,15],]
-    //for (var i=0; i<aryX.length; i++) {
     for (var i=0; i<mapRepeat.length; i++) {
         //イメージの繰り返ししたい時はこれ（横流し）テストコード
         //viewContext.drawImage(dummy, 0+shiftX, 0, 32-shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + (32*aryX[i]),        viewCanvasHalfHeight-mainCharaPosY + (32*aryY[i]), 32-shiftX, 32);//なんか最後の引数dxがよくわからんけどできた
@@ -386,6 +384,30 @@ function drawMapRepeat() {
         }
     }
     if (mapRepeat.length != 0) doing++; //マップリピートが0の場合、無限に増えていくのを防ぐためにこういう風に書いている。
+}
+
+var doing2 = 0;
+var loopTime = 500;
+function drawTurnChip() {
+    // mapTurn => x, y, time, name
+    for (var i=0; i<mapTurn.length; i++) {
+
+        if (doing2 == loopTime-10) { // 999 / 333 = 3 (ほんとはマックスのインデックスは2であるべきなのに)のケースを防ぐため、-1
+            doing2 = 0;
+        }
+
+        //画像インデックス
+        var index = Math.floor(doing2/mapTurn[i][2]);
+
+        var tmp = document.getElementById(mapTurn[i][3]+"_"+index);
+        if (!tmp) {
+            console.log(tmp);
+        }
+
+        viewContext.drawImage(tmp, (mapTurn[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapTurn[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+
+    }
+    if (mapTurn.length != 0) doing2++; //マップターンが0の場合、無限に増えていくのを防ぐためにこういう風に書いている。
 }
 
 //オブジェクトを描画する
@@ -772,11 +794,6 @@ function keyDownHandler(evt) {
                     sound('bgm/分類無し効果音/キャンセル2.mp3');
                     toolFlg = false;
                     currrentToolIndex = 0; // ツールインデックスを0に戻す
-                    //再描画
-                    // viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-                    // viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);
-                    // drawMainCharacter();
-                    //drawCanvas();
                     eventIndex = 0;
                     drawFlg = true;
                     draw(); //再描画開始
@@ -1037,6 +1054,7 @@ function checkStartMoveEvent() {
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
             if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
                 if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('turnChip')) return false;
                 if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
@@ -1049,6 +1067,7 @@ function checkStartMoveEvent() {
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
             if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
                 if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('turnChip')) return false;
                 if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
@@ -1061,6 +1080,7 @@ function checkStartMoveEvent() {
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
             if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
                 if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('turnChip')) return false;
                 if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
@@ -1073,6 +1093,7 @@ function checkStartMoveEvent() {
             var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
             if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
                 if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('turnChip')) return false;
                 if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
@@ -1573,7 +1594,42 @@ function showBattleScreen(battleData) {
 
 //画面遷移
 function doTransition(trasitionDataObj) {
-    //現在マップをクリア    
+
+    // const sec = 3;
+
+    // const wait = (sec) => {
+    //     return new Promise((resolve, reject) => {
+    //         setTimeout(resolve, sec*1000);
+    //         //setTimeout(() => {reject(new Error("エラー！"))}, sec*1000);
+    //     });
+    // };
+
+    // //1秒くらいかけてフェードアウト
+    // async () => {
+    //     try {
+    //         await wait(sec);
+    //             // ここに目的の処理を書きます。
+    //         alert(sec + '秒たちました！');
+    //     } catch (err) {
+    //         console.error(err);
+    //     }
+    // }
+
+    //遷移専用の音を出す。
+    sound('bgm/分類無し効果音/決定、ボタン押下5.mp3');
+
+    //0.5秒スリープさせる
+    const d1 = new Date();
+    while (true) {
+        const d2 = new Date();
+        if (d2 - d1 > 700) {
+            break;
+        }
+    }
+
+    viewContext.globalAlpha = 1;
+
+    //現在マップをクリア
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
 
     //遷移先のマップ画像とマップオブジェクトを取得
@@ -1636,8 +1692,10 @@ function doTransition(trasitionDataObj) {
 
 // 特殊マップチップのロード
 // 初期表示と画面遷移時と、オブジェクト削除/追加時などにコールする
+// ここでは必要なデータをつめるだけ。描画の時に、ここでつめたデータをもとに、描画する。
 function loadSpecialMapChips() {
     mapRepeat = [];
+    mapTurn = [];
     mapCharaObjects = [];
     mapToolObjects = [];
     for(let k in currrentMapObj) {
@@ -1648,6 +1706,21 @@ function loadSpecialMapChips() {
                 var aryXY = [l, k];
                 mapRepeat.push(aryXY);
             }
+
+            //交互マップチップ
+            if (currrentMapObj[k][l].hasOwnProperty('turnChip') || currrentMapObj[k][l].hasOwnProperty('turnChipPass')) {
+                var obj;
+                if (currrentMapObj[k][l].hasOwnProperty('turnChip')) {
+                    obj = currrentMapObj[k][l]['turnChip'];
+                } else {
+                    obj = currrentMapObj[k][l]['turnChipPass'];
+                }
+                var imgNum = document.getElementsByClassName("turn_" + obj.name).length;
+                var time = Math.floor(loopTime/imgNum); //6000/3 = 2000　みたいなことを想定 
+                var aryXYTN = [l, k, time, obj.name];
+                mapTurn.push(aryXYTN);
+            }
+
             //キャラオブジェクト/ツールオブジェクト
             if (currrentMapObj[k][l].hasOwnProperty('object') == true) {
                 var aryXYO = [l, k, currrentMapObj[k][l]['object']['imgName']];

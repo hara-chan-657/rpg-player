@@ -86,6 +86,31 @@ class RpgPlayerController extends Controller
         $toolCtlr = new ToolController();
         $tools = $toolCtlr->getTools($request->oldProjectName);
 
+        //ターンチップ取得
+        $excludes = array('.','..','.DS_Store');
+        $turnChips = array();
+        $turnPassChips = array();
+        //var_dump(scandir('../../rpg-player/public/projects'));
+        foreach(scandir('../../map-editor/image/map-editor/map-chip') AS $prjDir){
+            if (in_array($prjDir, $excludes)) continue;
+            foreach(scandir('../../map-editor/image/map-editor/map-chip/' . $prjDir . '/mapTurn') AS $chipDir){
+                if (in_array($chipDir, $excludes)) continue;
+                foreach(scandir('../../map-editor/image/map-editor/map-chip/' . $prjDir . '/mapTurn/' . $chipDir) AS $chipPng){
+                    if (in_array($chipPng, $excludes)) continue;
+                    $turnChips[$prjDir][$chipDir][] = $chipPng;
+                    //break; //全部とる
+                }
+            }
+            foreach(scandir('../../map-editor/image/map-editor/map-chip/' . $prjDir . '/mapTurnPass') AS $chipDir){
+                if (in_array($chipDir, $excludes)) continue;
+                foreach(scandir('../../map-editor/image/map-editor/map-chip/' . $prjDir . '/mapTurnPass/' . $chipDir) AS $chipPng){
+                    if (in_array($chipPng, $excludes)) continue;
+                    $turnPassChips[$prjDir][$chipDir][] = $chipPng;
+                    //break; //全部とる
+                }
+            }
+        }
+
         //サウンド取得
         $i = 0; //サウンドインデックス
         $sounds = array();
@@ -128,6 +153,8 @@ class RpgPlayerController extends Controller
                         'objCharas'=>$objCharas,
                         'objTools'=>$objTools,
                         'tools'=>$tools,
+                        'turnChips'=>$turnChips,
+                        'turnPassChips'=>$turnPassChips,
                         'sounds'=>$sounds
                     ]
         );
