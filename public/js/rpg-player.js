@@ -501,15 +501,15 @@ function loadImages() {
     //なければ、三角パンツをそのまま使う。
     if (projectDataObj.hasOwnProperty('mainChara')) {
             if (projectDataObj['mainChara']['f'] != "") mainCharaImgArray[0] = document.getElementById(projectDataObj['mainChara']['f']);
-            if (projectDataObj['mainChara']['fr'] != "") mainCharaImgArray[1] = document.getElementById(projectDataObj['mainChara']['fr']);
-            if (projectDataObj['mainChara']['fl'] != "") mainCharaImgArray[2] = document.getElementById(projectDataObj['mainChara']['fl']);
+            if (projectDataObj['mainChara']['fr'] != "") mainCharaImgArray[1] = document.getElementById(projectDataObj['mainChara']['fr']); //★ 前
+            if (projectDataObj['mainChara']['fl'] != "") mainCharaImgArray[2] = document.getElementById(projectDataObj['mainChara']['fl']); //★ 前
             if (projectDataObj['mainChara']['b'] != "") mainCharaImgArray[3] = document.getElementById(projectDataObj['mainChara']['b']);
-            if (projectDataObj['mainChara']['br'] != "") mainCharaImgArray[4] = document.getElementById(projectDataObj['mainChara']['br']);
-            if (projectDataObj['mainChara']['bl'] != "") mainCharaImgArray[5] = document.getElementById(projectDataObj['mainChara']['bl']);
-            if (projectDataObj['mainChara']['r'] != "") mainCharaImgArray[6] = document.getElementById(projectDataObj['mainChara']['r']);
-            if (projectDataObj['mainChara']['rr'] != "") mainCharaImgArray[7] = document.getElementById(projectDataObj['mainChara']['rr']);
-            if (projectDataObj['mainChara']['l'] != "") mainCharaImgArray[8] = document.getElementById(projectDataObj['mainChara']['l']);
-            if (projectDataObj['mainChara']['ll'] != "") mainCharaImgArray[9] = document.getElementById(projectDataObj['mainChara']['ll']);
+            if (projectDataObj['mainChara']['br'] != "") mainCharaImgArray[4] = document.getElementById(projectDataObj['mainChara']['br']); //★ 後ろ
+            if (projectDataObj['mainChara']['bl'] != "") mainCharaImgArray[5] = document.getElementById(projectDataObj['mainChara']['bl']); //★ 後ろ
+            if (projectDataObj['mainChara']['r'] != "") mainCharaImgArray[6] = document.getElementById(projectDataObj['mainChara']['r']);   //★ 右
+            if (projectDataObj['mainChara']['rr'] != "") mainCharaImgArray[7] = document.getElementById(projectDataObj['mainChara']['rr']); //★ 右
+            if (projectDataObj['mainChara']['l'] != "") mainCharaImgArray[8] = document.getElementById(projectDataObj['mainChara']['l']);   //★ 左
+            if (projectDataObj['mainChara']['ll'] != "") mainCharaImgArray[9] = document.getElementById(projectDataObj['mainChara']['ll']); //★ 左
 
     }
     //ロード時は下向きで表示
@@ -550,47 +550,79 @@ function showStartProject() {
 
 }
 
-//上下の場合の左右切り替えフラグ
-var sideSwitchFlg = true;
 //メインキャラクターを表示する
+var switchCountOfMain = 0;
 function drawMainCharacter() {
     //歩くアニメーションはここで実装する
     //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
     switch (scrollDir) {
         case 'left': 
-            if (scrollPos == 3) mainCharaImg = mainCharaImgArray[9];
-            if (scrollPos == 25) mainCharaImg = mainCharaImgArray[8];
+            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[9]:mainCharaImg = mainCharaImgArray[8];
             break;
         case 'up':
-            //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
-            if (sideSwitchFlg) {
-                if (scrollPos == 3) mainCharaImg = mainCharaImgArray[4];
-                if (scrollPos == 25) mainCharaImg = mainCharaImgArray[3];   
-            } else {
-                if (scrollPos == 3) mainCharaImg = mainCharaImgArray[5];
-                if (scrollPos == 25) mainCharaImg = mainCharaImgArray[3];   
-            } 
+            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[5]:mainCharaImg = mainCharaImgArray[4];
             break;
         case 'right':
-            if (scrollPos == 3) mainCharaImg = mainCharaImgArray[7];
-            if (scrollPos == 25) mainCharaImg = mainCharaImgArray[6];
+            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[7]:mainCharaImg = mainCharaImgArray[6];
             break;
         case 'down':
-            //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
-            if (sideSwitchFlg) {
-                if (scrollPos == 3) mainCharaImg = mainCharaImgArray[1];
-                if (scrollPos == 25) mainCharaImg = mainCharaImgArray[0];   
-            } else {
-                if (scrollPos == 3) mainCharaImg = mainCharaImgArray[2];
-                if (scrollPos == 25) mainCharaImg = mainCharaImgArray[0];   
-            }  
+            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
             break;
+        default :
+            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
+         break;
     }
-    //上下の場合の左右切り替え
-    if (scrollPos == 31) sideSwitchFlg = sideSwitchFlg ? false : true;
     //メインキャラを描画
     viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
+    switchCountOfMain++;
+    if (switchCountOfMain == 128) switchCountOfMain = 0;
+
 }
+
+//上下の場合の左右切り替えフラグ
+//var sideSwitchFlg = true;
+
+//メインキャラクターを表示する
+// function drawMainCharacter() {
+//     //歩くアニメーションはここで実装する
+//     //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
+//     switch (scrollDir) {
+//         case 'left': 
+//             if (scrollPos == 3) mainCharaImg = mainCharaImgArray[9];
+//             if (scrollPos == 25) mainCharaImg = mainCharaImgArray[8];
+//             break;
+//         case 'up':
+//             //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+//             if (sideSwitchFlg) {
+//                 if (scrollPos == 3) mainCharaImg = mainCharaImgArray[4];
+//                 if (scrollPos == 25) mainCharaImg = mainCharaImgArray[3];   
+//             } else {
+//                 if (scrollPos == 3) mainCharaImg = mainCharaImgArray[5];
+//                 if (scrollPos == 25) mainCharaImg = mainCharaImgArray[3];   
+//             } 
+//             break;
+//         case 'right':
+//             if (scrollPos == 3) mainCharaImg = mainCharaImgArray[7];
+//             if (scrollPos == 25) mainCharaImg = mainCharaImgArray[6];
+//             break;
+//         case 'down':
+//             //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+//             if (sideSwitchFlg) {
+//                 if (scrollPos == 3) mainCharaImg = mainCharaImgArray[1];
+//                 if (scrollPos == 25) mainCharaImg = mainCharaImgArray[0];   
+//             } else {
+//                 if (scrollPos == 3) mainCharaImg = mainCharaImgArray[2];
+//                 if (scrollPos == 25) mainCharaImg = mainCharaImgArray[0];   
+//             }  
+//             break;
+//     }
+//     //上下の場合の左右切り替え
+//     if (scrollPos == 31) sideSwitchFlg = sideSwitchFlg ? false : true;
+//     //メインキャラを描画
+//     viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
+// }
+
+
 
 function keyUpHandler(evt) {
     console.log(evt.keyCode);
@@ -1618,11 +1650,11 @@ function doTransition(trasitionDataObj) {
     //遷移専用の音を出す。
     sound('bgm/分類無し効果音/決定、ボタン押下5.mp3');
 
-    //0.5秒スリープさせる
+    //0.7秒スリープさせる
     const d1 = new Date();
     while (true) {
         const d2 = new Date();
-        if (d2 - d1 > 700) {
+        if (d2 - d1 > 420) {
             break;
         }
     }

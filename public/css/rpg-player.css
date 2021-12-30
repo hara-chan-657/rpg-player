@@ -9,9 +9,12 @@ html {
 #viewCanvas {
     background-color: black;
     margin-top: 20px;
+    border: solid 5px red;
+    position: fixed;
 }
 
 #projectsContainer {
+    margin-top: 550px;
     display: ;
 }
 
