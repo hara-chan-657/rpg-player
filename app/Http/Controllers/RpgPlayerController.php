@@ -63,8 +63,25 @@ class RpgPlayerController extends Controller
                 foreach(glob($prjObjCharaDir .'/*.png') AS $objChara){
                     //var_dump($objChara);
                     if(is_file($objChara)){
+                        $aryDirectionToIndex = array(
+                            'f' => '0', //0
+                            'fr' => '1',//1
+                            'fl' => '2',//2
+                            'b' => '3', //3
+                            'br' => '4',//4
+                            'bl' => '5',//5
+                            'r' => '6', //6
+                            'rr' => '7',//7
+                            'l' => '8', //8
+                            'll' => '9',//9
+                            'ot' => '10',//10
+                        );
                         $objCharas[$charaBaseName][$i]['path'] = $objChara;
                         $objCharas[$charaBaseName][$i]['baseName'] = basename($objChara);
+                        $sPos = strpos($objChara, '_D');
+                        $ePos = strpos($objChara, '.png');
+                        $direction = substr($objChara, $sPos+2, $ePos-($sPos+2));
+                        $objCharas[$charaBaseName][$i]['index'] = $aryDirectionToIndex[$direction];
                         $i++;
                     }
                 }

@@ -45,7 +45,7 @@
         @foreach($objCharas as $key => $objCharaDir)
             <div class="eachObjCharaContainer eachContainer" alt="{{$key}}">
                 @foreach($objCharaDir as $objChara)
-                    <img src="{{$objChara['path']}}" id="{{$objChara['baseName']}}" class='objChara' alt="{{$objChara['baseName']}}">
+                    <img src="{{$objChara['path']}}" id="{{$key}}_{{$objChara['index']}}" class="objChara" alt="{{$objChara['baseName']}}">
                 @endforeach
             </div>
         @endforeach

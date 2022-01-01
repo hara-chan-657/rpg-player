@@ -232,15 +232,16 @@ function draw() {
     if (drawFlg) {
         drawCanvas() //キャンバスに描画する部分の関数をこの関数にまとめる（単に画面をリセットしたい場合など、この関数を呼べるようにするため）
 
-            //テスト
+        //////////////////////////////////テスト start
         drawOnotherCharacter(); //とりあえずobjの単純表示はできそう
         drawlmr();
         drawGoRight();
+        //////////////////////////////////テスト end
 
-        setTimeout("draw()", 3); //1000分の3ミリ秒毎に毎回描画を繰り返す
+        setTimeout("draw()", 5); //1000分の5ミリ秒毎に毎回描画を繰り返す
     } else {
         //drawFlgがfalseの場合はdrawの繰り返しを止める。再会するにはtrueを代入し、draw()をコールする。
-        var timerId = setTimeout("draw()", 3);
+        var timerId = setTimeout("draw()", 5);
         clearTimeout(timerId);
     }
 }
@@ -386,6 +387,7 @@ function drawMapRepeat() {
     if (mapRepeat.length != 0) doing++; //マップリピートが0の場合、無限に増えていくのを防ぐためにこういう風に書いている。
 }
 
+//ターンチップを描画する
 var doing2 = 0;
 var loopTime = 500;
 function drawTurnChip() {
@@ -411,19 +413,44 @@ function drawTurnChip() {
 }
 
 //オブジェクトを描画する
+var switchCountOfObj = 0;
 function drawObjects() {
+    //歩くアニメーションはここで実装する
+    //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
+    var index = 0;
+
     for (var i=0; i<mapCharaObjects.length; i++) {
-        //とりあえず固定で表示するだけならこれ
-        //キャラオブジェクトの描画位置は、設定の固定位置＋drawImage分ずらしている点がみそ
-        viewContext.drawImage(document.getElementById(mapCharaObjects[i][2]), (mapCharaObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapCharaObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
-        //viewContext.設定の固定位置＋drawImage分ずらしている(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);　//ベースマップの描画点がみそ
-        //ここに動的にキャラオブジェクトを表示するロジックを書いていく（とりあえず、優先度的には低め）。
-        //メモ
-        //一定時間で方向転換の判定（時間のカウントを変数に持っておかないとだな、、）
-        //中には方向転換をしたくないキャラもいるだろうから、それをどうするか、
-        //話かけたら方向を変えるとか、そう言う細かいのもできるな、だんだんめんどくさくなってきた。
-        //足踏みの実装
+        // XYODではsatoshiの名前を取得(2,objName)
+        // ここでは、mapTurn[i][3]+"_"+indexで描画（indexの切り替えはメインキャラを参考（ただ、メインキャラと違って必ず画像があるとは限らない））
+
+        switch (mapCharaObjects[i][3]) { //ディレクション（ランダム）
+            case 3: //left  
+                // 
+                if(document.getElementById(mapCharaObjects[i][2]+"_9")!=null && document.getElementById(mapCharaObjects[i][2]+"_8")!=null) switchCountOfObj < 64 ? index = 9: index = 8;
+                break;
+            case 1: //up
+                if(document.getElementById(mapCharaObjects[i][2]+"_5")!=null && document.getElementById(mapCharaObjects[i][2]+"_4")!=null) switchCountOfObj < 64 ? index = 5: index = 4;
+                break;
+            case 2: //right
+                if(document.getElementById(mapCharaObjects[i][2]+"_7")!=null && document.getElementById(mapCharaObjects[i][2]+"_6")!=null) switchCountOfObj < 64 ? index = 7: index = 6;
+                break;
+            case 0: //down
+                if(document.getElementById(mapCharaObjects[i][2]+"_2")!=null && document.getElementById(mapCharaObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
+                break;
+            default :
+                //if(document.getElementById(mapCharaObjects[i][2]+"_2")!=null && document.getElementById(mapCharaObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
+            break;
+        }
+
+        //ディレクションはランダムで定期的に変える
+        var tmp = Math.random();
+        if (switchCountOfObj == 127 && tmp < 0.4) mapCharaObjects[i][3] = Math.floor(tmp*10);
+
+        viewContext.drawImage(document.getElementById(mapCharaObjects[i][2]+"_"+index), (mapCharaObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapCharaObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
     }
+    switchCountOfObj++;
+    if (switchCountOfObj == 128) switchCountOfObj = 0;
+
     for (var i=0; i<mapToolObjects.length; i++) {
         //とりあえず固定で表示するだけならこれ
         viewContext.drawImage(document.getElementById(mapToolObjects[i][2]), (mapToolObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapToolObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
@@ -500,16 +527,16 @@ function loadImages() {
     //ここでprojectData.jsonの、mainCharaプロパティを取得、あれば三角パンツを上書きする
     //なければ、三角パンツをそのまま使う。
     if (projectDataObj.hasOwnProperty('mainChara')) {
-            if (projectDataObj['mainChara']['f'] != "") mainCharaImgArray[0] = document.getElementById(projectDataObj['mainChara']['f']);
-            if (projectDataObj['mainChara']['fr'] != "") mainCharaImgArray[1] = document.getElementById(projectDataObj['mainChara']['fr']); //★ 前
-            if (projectDataObj['mainChara']['fl'] != "") mainCharaImgArray[2] = document.getElementById(projectDataObj['mainChara']['fl']); //★ 前
-            if (projectDataObj['mainChara']['b'] != "") mainCharaImgArray[3] = document.getElementById(projectDataObj['mainChara']['b']);
-            if (projectDataObj['mainChara']['br'] != "") mainCharaImgArray[4] = document.getElementById(projectDataObj['mainChara']['br']); //★ 後ろ
-            if (projectDataObj['mainChara']['bl'] != "") mainCharaImgArray[5] = document.getElementById(projectDataObj['mainChara']['bl']); //★ 後ろ
-            if (projectDataObj['mainChara']['r'] != "") mainCharaImgArray[6] = document.getElementById(projectDataObj['mainChara']['r']);   //★ 右
-            if (projectDataObj['mainChara']['rr'] != "") mainCharaImgArray[7] = document.getElementById(projectDataObj['mainChara']['rr']); //★ 右
-            if (projectDataObj['mainChara']['l'] != "") mainCharaImgArray[8] = document.getElementById(projectDataObj['mainChara']['l']);   //★ 左
-            if (projectDataObj['mainChara']['ll'] != "") mainCharaImgArray[9] = document.getElementById(projectDataObj['mainChara']['ll']); //★ 左
+            if (projectDataObj['mainChara']['f'] != "") mainCharaImgArray[0] = document.getElementById(projectDataObj['mainChara']['name']+"_0"); //f
+            if (projectDataObj['mainChara']['fr'] != "") mainCharaImgArray[1] = document.getElementById(projectDataObj['mainChara']['name']+"_1"); //★ 前1 fr
+            if (projectDataObj['mainChara']['fl'] != "") mainCharaImgArray[2] = document.getElementById(projectDataObj['mainChara']['name']+"_2"); //★ 前2 fl
+            if (projectDataObj['mainChara']['b'] != "") mainCharaImgArray[3] = document.getElementById(projectDataObj['mainChara']['name']+"_3"); //b
+            if (projectDataObj['mainChara']['br'] != "") mainCharaImgArray[4] = document.getElementById(projectDataObj['mainChara']['name']+"_4"); //★ 後ろ4 br
+            if (projectDataObj['mainChara']['bl'] != "") mainCharaImgArray[5] = document.getElementById(projectDataObj['mainChara']['name']+"_5"); //★ 後ろ5 bl
+            if (projectDataObj['mainChara']['r'] != "") mainCharaImgArray[6] = document.getElementById(projectDataObj['mainChara']['name']+"_6");   //★ 右6 r
+            if (projectDataObj['mainChara']['rr'] != "") mainCharaImgArray[7] = document.getElementById(projectDataObj['mainChara']['name']+"_7"); //★ 右7 rr
+            if (projectDataObj['mainChara']['l'] != "") mainCharaImgArray[8] = document.getElementById(projectDataObj['mainChara']['name']+"_8");   //★ 左8 l
+            if (projectDataObj['mainChara']['ll'] != "") mainCharaImgArray[9] = document.getElementById(projectDataObj['mainChara']['name']+"_9"); //★ 左9 ll
 
     }
     //ロード時は下向きで表示
@@ -647,14 +674,12 @@ function keyDownHandler(evt) {
         } else if (questionFlg) {
             switch (evt.keyCode) {
                 case 38: //上
-                    //カーソルを上に
-                    targetAnswer = 0; //はいを選択
-                    showYesNo(targetAnswer);
+                    //カーソルを上に (はいを選択)
+                    showYesNo(0);
                 break;
                 case 40: //下
-                    //カーソルを下に
-                    targetAnswer = 1; //いいえを選択
-                    showYesNo(targetAnswer);
+                    //カーソルを下に (いいえを選択)
+                    showYesNo(1);
                 break;
                 case 65: //Aボタン
                     //はいいいえを選んだ処理、質問イベントを終了する
@@ -774,6 +799,8 @@ function keyDownHandler(evt) {
                     viewContext.fillStyle = 'white';
                     viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4); //前回表示クリア
                     toolDescription(prjTools[haveTools[currrentToolIndex]]['description']);
+                    //音を出す
+                    sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
 
                 break;
                 case 40: //下
@@ -821,6 +848,8 @@ function keyDownHandler(evt) {
                         viewContext.fillStyle = 'white';
                         viewContext.fillRect(200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace), 35, 35);//前回カーソル表示部分クリア
                     }
+                    //音を出す
+                    sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
                 break;
                 case 84: //tキー
                     sound('bgm/分類無し効果音/キャンセル2.mp3');
@@ -1755,12 +1784,14 @@ function loadSpecialMapChips() {
 
             //キャラオブジェクト/ツールオブジェクト
             if (currrentMapObj[k][l].hasOwnProperty('object') == true) {
-                var aryXYO = [l, k, currrentMapObj[k][l]['object']['imgName']];
+                
                 switch (currrentMapObj[k][l]['object']['objName']) {
                     case 'character' :
-                    mapCharaObjects.push(aryXYO);
+                    var aryXYOD = [l, k, currrentMapObj[k][l]['object']['charaName'], 0]; // x y キャラネーム ディレクション（0123:上下左右)
+                    mapCharaObjects.push(aryXYOD);
                     break;
                     case 'tool' :
+                    var aryXYO = [l, k, currrentMapObj[k][l]['object']['imgName']];
                     mapToolObjects.push(aryXYO);
                     break;
                 }
@@ -1853,6 +1884,12 @@ function showYesNo(targetAnswerIndex) {
         //ページが持っている行の分会話を表示（行の折り返しの高さは最後の(i*mapTipLength)の部分）
         viewContext.fillText(yesNo[i], questionWinStartX+40, questionWinStartY+10+(i*mapTipLength));
     }
+
+    //前回と違う選択をした場合音を出す
+    if (targetAnswer != targetAnswerIndex) {
+        sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
+    }
+
     //カーソル描画、上下とAボタンではいいいえを選択し、結果を返す
     targetAnswer = targetAnswerIndex; //1：はい、2：いいえ
     viewContext.fillStyle = 'black';
