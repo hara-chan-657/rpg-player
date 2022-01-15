@@ -2153,6 +2153,18 @@ function doTalk(talkContent, wipe = '') {
         viewContext.fillRect(talkWinStartX, talkWinStartY-100, 100, 100);
         wipeImg = document.getElementById(wipe);
         viewContext.drawImage(wipeImg, talkWinStartX+2, talkWinStartY-100+2);
+        //ワイプ名を表示
+        var sPos = wipe.indexOf('_N')+2;
+        var ePos = wipe.indexOf('.png');
+        var nameRange = ePos - sPos;
+        var wipeName = wipe.substr(sPos, nameRange);
+        var wipeNameLength = viewContext.measureText(wipeName);
+        viewContext.fillStyle = 'white';
+        viewContext.fillRect(talkWinStartX+100+2, talkWinStartY-35, wipeNameLength.width, 32);
+        viewContext.fillStyle = 'black';
+        viewContext.textBaseline = 'top';
+        viewContext.font = talkFont;
+        viewContext.fillText(wipeName, talkWinStartX+100+2, talkWinStartY-30);
     }
 
     //会話ウィンドウを黒でクリア
