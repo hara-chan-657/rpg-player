@@ -13,6 +13,12 @@ html {
     position: fixed;
 }
 
+#eventSign {
+    margin-top: 515px;
+    position: fixed;
+    font-size: 25px;
+}
+
 #projectsContainer {
     margin-top: 550px;
     display: ;

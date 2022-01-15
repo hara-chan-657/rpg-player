@@ -16,6 +16,7 @@
 
     @endcomponent
     <canvas id="viewCanvas"></canvas>
+    <p id="eventSign">●</p>
     <div id="projectsContainer">
         <p>確認コマンド：console.log(mapObj);</p>
         <button onclick="openHiddenInfo()">オープン</button>

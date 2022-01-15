@@ -178,7 +178,8 @@ function sound(soundPath='') {
     }
 }
 
-//マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に3ミリ秒毎に動き続ける。
+//マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に5ミリ秒毎に動き続ける。
+var drawSpeed = 5; //描画スピード
 function draw() {
     switch (scrollState) {
         //非スクロール中
@@ -228,6 +229,25 @@ function draw() {
         }
     }
 
+    if (finishDrawMoveFlg) {
+
+        drawSpeed = 5;
+
+        //次のイベントがあれば次のイベント
+        finishDrawMoveFlg = false;
+        drawMoveObjFlg = false;
+
+        if (eventIndex+1 != events.length) {
+            eventIndex++;
+            doEvents();
+        } else {
+        //なければ通常通りのdraw()
+            // drawFlg = true;
+            eventIndex = 0; 
+        }
+
+    }
+
     //描画フラグがtrueならマップとオブジェクトとメインキャラクターを描画
     if (drawFlg) {
         drawCanvas() //キャンバスに描画する部分の関数をこの関数にまとめる（単に画面をリセットしたい場合など、この関数を呼べるようにするため）
@@ -238,10 +258,10 @@ function draw() {
         drawGoRight();
         //////////////////////////////////テスト end
 
-        setTimeout("draw()", 5); //1000分の5ミリ秒毎に毎回描画を繰り返す
+        setTimeout("draw()", drawSpeed); //1000分の5ミリ秒毎に毎回描画を繰り返す
     } else {
         //drawFlgがfalseの場合はdrawの繰り返しを止める。再会するにはtrueを代入し、draw()をコールする。
-        var timerId = setTimeout("draw()", 5);
+        var timerId = setTimeout("draw()", drawSpeed);
         clearTimeout(timerId);
     }
 }
@@ -252,7 +272,7 @@ function drawCanvas() {
     viewContext.drawImage(currentMapImg, viewCanvasHalfWidth-mainCharaPosX, viewCanvasHalfHeight-mainCharaPosY);　//ベースマップの描画
     drawMapRepeat(); //繰り返しマップの描画
     drawTurnChip(); //マップ交互の描画
-    drawObjects(); //オブジェクトの描画（キャラクター/ツール）
+    drawMoveObjFlg ? drawObjectsWithMove() : drawObjects();//オブジェクトの描画（キャラクター/ツール）
     drawMainCharacter(); //メインキャラの描画
 }
 
@@ -318,6 +338,7 @@ function drawGoRight() {
     }
     count++;
 }
+
 var switchCount = 0;
 var switchCountMax = 100;
 var switched = 0;
@@ -438,7 +459,7 @@ function drawObjects() {
                 if(document.getElementById(mapCharaObjects[i][2]+"_2")!=null && document.getElementById(mapCharaObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
                 break;
             default :
-                //if(document.getElementById(mapCharaObjects[i][2]+"_2")!=null && document.getElementById(mapCharaObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
+               //if(document.getElementById(mapCharaObjects[i][2]+"_2")!=null && document.getElementById(mapCharaObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
             break;
         }
 
@@ -456,6 +477,293 @@ function drawObjects() {
         viewContext.drawImage(document.getElementById(mapToolObjects[i][2]), (mapToolObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapToolObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
     }
 }
+
+
+var drawMoveObjFlg = false;
+var mapCharaObjectsMove = [];
+var maxOrderNUm = 0;
+var targetChips = [];
+var tmpCount = 1;
+function doMove(moveData) {
+
+    //ここで情報を受け取っておく
+    //イベントキー
+    //　チップn（チップ分）
+    //　　　x
+    //     y
+    //     orders
+    //　　　削除フラグ
+    //　　　追加オブジェクト（ないかもしれない）
+    //　移動スピード
+
+    // drawSpeed = 9 遅い;　drawSpeed = ６　中くらい　;drawSpeed = ３　速い;
+    drawSpeed = Number(moveData['drawSpeed']);
+
+    // チップごとに情報を取り出して、配列に詰め直す
+    var tmpIndex = 1;
+    var moveChipNameKey = "chip_"+tmpIndex;
+    if (moveData.hasOwnProperty(moveChipNameKey)) {
+        do {
+            var chipData = moveData[moveChipNameKey];
+            var target = [];
+
+            //fromX,Y
+            target.push(Number(chipData['fromX']));
+            target.push(Number(chipData['fromY']));
+            
+            //orders
+            var charas = chipData['orders'].split('');
+            var orders = [];
+            for (var i=0; i<charas.length; i++) {
+                orders.push(Number(charas[i]));
+            }
+            target.push(orders);
+
+            //finishDelFlg
+            var finishDelFlg = chipData['finishDelFlg'] == "true" ? true : false ;
+            target.push(finishDelFlg);
+
+            //newMoveObj
+            if (chipData.hasOwnProperty('newMoveObj')) {
+                target.push(chipData['newMoveObj']);
+            }
+
+            targetChips.push(target);
+
+            tmpIndex++;
+            moveChipNameKey = "chip_"+tmpIndex;
+
+        } while(moveData.hasOwnProperty(moveChipNameKey));
+    } 
+
+    // var target1 = [3,0,[0,0,2,2,0,0,3,0],true,obj1]; //x y order 削除フラグ 追加オブジェクト 消去済みフラグ
+    // var target2 = [4,0,[0,2,1,3],false,null]; //x y order 削除フラグ 追加オブジェクト
+    // var target3 = [7,6,[4,4,4,4,4,4,2,2,4,4,4,4,4,4,4,4,1,4,4,4,4,4,4,4,4,2,2,3,1],false,null]; //x y order 削除フラグ 追加オブジェクト
+
+    // if (tmpCount == 1) {
+    //     targetChips.push(target1);
+    //     targetChips.push(target2);
+    //     targetChips.push(target3);
+    // } else {
+    //     targetChips.push(target2);
+    // }
+    // tmpCount++;
+
+
+    //フラグを変える
+    //他のフラグとかは大丈夫か、、
+    drawMoveObjFlg = true;
+
+    //ターゲットチップでループ
+    //①　一番多い命令の数を取得
+    //②　追加オブジェクトを追加（次の既存のキャラオブジェクトでループで既存のように扱うため、このタイミングで事前に追加しておく）
+    for (var j=0; j<targetChips.length; j++) {
+        //一番多い命令の数を取得
+        if (targetChips[j][2].length > maxOrderNUm) {
+            maxOrderNUm = targetChips[j][2].length;
+        }
+
+        //追加オブジェクトがある場合、ここで追加
+        //マップにオブジェクトが設定されていない場合
+        if (!currrentMapObj[targetChips[j][1]][targetChips[j][0]].hasOwnProperty('object')) {
+            //ムーブ対象チップが、追加オブジェクトを持っている場合
+            if (targetChips[j][4] != null) {
+                //追加オブジェクトを召喚
+                currrentMapObj[targetChips[j][1]][targetChips[j][0]]['object'] = targetChips[j][4];
+                var aryXYODMFI = [Number(targetChips[j][0]), Number(targetChips[j][1]), currrentMapObj[targetChips[j][1]][targetChips[j][0]]['object']['charaName'], 0, j, targetChips[j][3], targetChips[j][4]]; // x y キャラネーム ディレクション（0123:上下左右) ムーブフラグ デリートフラグ マップオブジェクト格納用
+                mapCharaObjectsMove.push(aryXYODMFI.concat());
+                var aryXYODMFI = [Number(targetChips[j][0]), Number(targetChips[j][1]), currrentMapObj[targetChips[j][1]][targetChips[j][0]]['object']['charaName'], 0, null, false, null]; // x y キャラネーム ディレクション（0123:上下左右) ムーブフラグ デリートフラグ マップオブジェクト格納用
+                mapCharaObjects.push(aryXYODMFI.concat());
+            } else {
+                alert('追加オブジェクトがないよ　' + targetChips[j][0] + '：' + targetChips[j][1]);
+            }
+        }
+    }
+
+    //既存のキャラオブジェクトでループ
+    //ターゲットチップとかぶる場合、移動対象とみなし、
+    for (var i=0; i<mapCharaObjects.length; i++) {
+        
+        var incldFlg = false;
+        var targetIndex = 0;
+        var delFlg = false;
+        var objInfo;
+        //まずは無条件で、mapCharaObjectsMoveにデータコピー
+        mapCharaObjectsMove[i] = mapCharaObjects[i].concat(); //concatで空の配列を繋げて新しい配列にしないと参照渡しになる。
+        //ターゲットチップとかぶるキャラオブジェクトだった場合、移動対象のキャラオブジェクトなので
+        //もとのマップ上のオブジェクトデータの削除、待避を行う必要がある
+        for (var j=0; j<targetChips.length; j++) {
+            if (mapCharaObjects[i][0] == targetChips[j][0] && mapCharaObjects[i][1] == targetChips[j][1]) {
+                incldFlg = true; //既存のオブジェクトと判断
+                targetIndex = j;
+                delFlg = targetChips[j][3]; //移動し切った後に削除するかのフラグを取得
+                //マップ情報のオブジェクトデータも移行する
+                objInfo = currrentMapObj[mapCharaObjects[i][1]][mapCharaObjects[i][0]]['object']; //オブジェクト情報を避難、、どうするか
+                //オブジェクト情報はこの時点で削除する
+                delete currrentMapObj[mapCharaObjects[i][1]][mapCharaObjects[i][0]]['object'];
+                break;
+            }
+        }
+        if (incldFlg) {
+            mapCharaObjectsMove[i][4] = targetIndex; //ターゲットチップ配列でのインデックス
+            mapCharaObjectsMove[i][5] = delFlg; //移動した後削除するかのフラグ
+            mapCharaObjectsMove[i][6] = objInfo; //もとのマップ上のオブジェクトデータ（待避）
+        } else {
+            //mapCharaObjectsMove[i][4] = false;
+        }
+    }
+
+    if (!drawFlg) {
+        //描画開始
+        drawFlg = true;
+        draw();
+    }
+}
+
+//キャラ移動の実態はこれ
+//グローバルに格納済みのオブジェクト移動情報（mapCharaObjectsMove）をもとに描画する
+//  基本はほとんど同じ（全部のイメージは揃っているものとする。ランダム描画はこの時だけは停止（歩きながら反対向いたりしたらきもいから）
+//  対象のオブジェクトだった場合、1pxずつ、現在のorderIndexの方向にずらして描画する。
+//  32px毎に、orderのindexをずらす（右とか左とか）
+//  32px毎に、次のorderがあるか判定。なかったら、対象のオブジェクトから削除、削除フラグがあった場合画面からこのタイミングで削除する。
+//  描画し切ったら、オブジェクトの位置を整えて、変数を初期化して、drawを止めて、フラグを戻して、次のイベント
+var finishDrawMoveFlg = false;
+var moveCounter = 0; // if moveCounter == mapTipLength みたいに使う
+var orderIndex = 0; //命令の番号 [左　右　下]　みたいな
+var movePxX = []; //X方向にずらす距離。キャラオブジェクト毎に保持する（movePxY[i]みたいに）
+var movePxY = []; //同上
+function drawObjectsWithMove() {
+    for (var i=0; i<mapCharaObjectsMove.length; i++) {
+
+        var targetIndex = 0;
+
+        if (mapCharaObjectsMove[i][4] != null) {
+            targetIndex = mapCharaObjectsMove[i][4];
+            if (movePxX[i] == undefined) movePxX[i] = 0;
+            if (movePxY[i] == undefined) movePxY[i] = 0;
+            if (targetChips[targetIndex][2][orderIndex] == 0)  movePxY[i] += 1; //down
+            if (targetChips[targetIndex][2][orderIndex] == 1)  movePxY[i] -= 1; //up
+            if (targetChips[targetIndex][2][orderIndex] == 2)  movePxX[i] += 1; //right
+            if (targetChips[targetIndex][2][orderIndex] == 3)  movePxX[i] -= 1; //left
+
+        }
+
+        var index = 0; //足踏みの左右のインデックス
+
+        // 通常チップだった場合　　：通常のディレクションを使用（イベント発生直前の向きで固定される）
+        // ムーブのチップだった場合：現在のorderIndexのディレクションを使用（歩く方向に向けたいから）
+        //switch (mapCharaObjectsMove[i][4]==null ? mapCharaObjectsMove[i][3] : targetChips[targetIndex][2][orderIndex]) {
+        var tmp = mapCharaObjectsMove[i][4]==null ? mapCharaObjectsMove[i][3] : targetChips[targetIndex][2][orderIndex];
+        var tmp2 = 999;
+        if (orderIndex != 0) tmp2 = tmp; //これはただの待避用
+        if (tmp == 4) {//停止orderだったら
+            tmp = targetChips[targetIndex][2][orderIndex-1];
+            //31px進んだ時で
+            if (moveCounter == mapTipLength-1) {
+                //一個前のオーダーを、現時点のオーダーに引き継ぐ
+                targetChips[targetIndex][2][orderIndex] = targetChips[targetIndex][2][orderIndex-1];
+            }
+        }
+
+        switch (tmp) {
+            case 3: //left  
+                if(document.getElementById(mapCharaObjectsMove[i][2]+"_9")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_8")!=null) switchCountOfObj < 64 ? index = 9: index = 8;
+                break;
+            case 1: //up
+                if(document.getElementById(mapCharaObjectsMove[i][2]+"_5")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_4")!=null) switchCountOfObj < 64 ? index = 5: index = 4;
+                break;
+            case 2: //right
+                if(document.getElementById(mapCharaObjectsMove[i][2]+"_7")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_6")!=null) switchCountOfObj < 64 ? index = 7: index = 6;
+                break;
+            case 0: //down
+                if(document.getElementById(mapCharaObjectsMove[i][2]+"_2")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
+                break;
+            default :
+                // if(document.getElementById(mapCharaObjects[i][2]+"_2")!=null && document.getElementById(mapCharaObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
+                break;
+        }
+
+        if (mapCharaObjectsMove[i][4] != null) {
+            viewContext.drawImage(document.getElementById(mapCharaObjectsMove[i][2]+"_"+index), (mapCharaObjectsMove[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX)+movePxX[i], (mapCharaObjectsMove[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY)+movePxY[i]);
+        } else {
+            viewContext.drawImage(document.getElementById(mapCharaObjectsMove[i][2]+"_"+index), (mapCharaObjectsMove[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX),         (mapCharaObjectsMove[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY)        );
+        }
+
+        //31px進んだ時で
+        if ((moveCounter == mapTipLength-1) && (tmp2 != 4)){
+            //ムーブチップだった場合
+            if (mapCharaObjectsMove[i][4] != null) { //null or targetIndex
+                // 次のインデックスのオーダーがなくて、かつ削除フラグがあった場合
+                if (targetChips[targetIndex][2][orderIndex+1] == undefined && mapCharaObjectsMove[i][5] == true){
+
+                    //mapCharaObjects（Move）から削除する
+                    mapCharaObjectsMove.splice(i,1);
+                    mapCharaObjects.splice(i,1);
+                    i--;//インデックスをずらしてループを調整
+
+                //次のインデックスのオーダーがある場合
+                } else {
+
+                    // 位置情報を整える
+                    if (targetChips[targetIndex][2][orderIndex] == 0)  mapCharaObjectsMove[i][1] = mapCharaObjectsMove[i][1]+1; //down
+                    if (targetChips[targetIndex][2][orderIndex] == 1)  mapCharaObjectsMove[i][1] = mapCharaObjectsMove[i][1]-1; //up
+                    if (targetChips[targetIndex][2][orderIndex] == 2)  mapCharaObjectsMove[i][0] = mapCharaObjectsMove[i][0]+1; //right
+                    if (targetChips[targetIndex][2][orderIndex] == 3)  mapCharaObjectsMove[i][0] = mapCharaObjectsMove[i][0]-1; //left
+
+                    // 元の方もこのタイミングでやっちゃう
+                    mapCharaObjects[i][0] = mapCharaObjectsMove[i][0]; //x
+                    mapCharaObjects[i][1] = mapCharaObjectsMove[i][1]; //y
+
+                }
+            }
+            movePxX[i] = 0; //31 ⇨ 0に戻す
+            movePxY[i] = 0; //31 ⇨ 0に戻す
+        }
+    }
+
+    for (var i=0; i<mapToolObjects.length; i++) {
+        //とりあえず固定で表示するだけならこれ
+        viewContext.drawImage(document.getElementById(mapToolObjects[i][2]), (mapToolObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapToolObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+    }
+
+    switchCountOfObj++;
+    if (switchCountOfObj == 128) switchCountOfObj = 0;
+
+    moveCounter++;
+    if (moveCounter == mapTipLength) {//32px進んだら
+        moveCounter = 0;
+        orderIndex++; //次のオーダーに切り替える
+    }
+
+    //命令が全部終わったら
+    if (maxOrderNUm == orderIndex) {
+        //mapCharaObjectsMove
+        for (var i=0; i<mapCharaObjectsMove.length; i++) {
+            //事前に保持しておいたオブジェクト情報[6]をマップに移行（ダメならここでアラートを出す。）
+            // mapCharaObjectsMoveのインデックス6（待避用オブジェクト）が空でないとき（つまり、既存のオブジェクトを動かした場合） && 　mapCharaObjectsMoveの終着点にオブジェクトがある場合はエラー
+            if (mapCharaObjectsMove[i][6] != null && currrentMapObj[mapCharaObjectsMove[i][1]][mapCharaObjectsMove[i][0]].hasOwnProperty('object')) { 
+                alert("ダメでーす");
+            } else {
+            //既存のオブジェクトを動かした場合で、移動先にオブジェクトが存在しなければ置いてもよし。
+                currrentMapObj[mapCharaObjectsMove[i][1]][mapCharaObjectsMove[i][0]]['object'] = mapCharaObjectsMove[i][6];
+            }
+        }
+
+        //完了フラグを立てる
+        finishDrawMoveFlg = true;
+        //変数初期化
+        maxOrderNUm = 0;
+        orderIndex = 0;
+        mapCharaObjectsMove = [];
+        targetChips = [];
+        movePxX = [];
+        movePxY = [];
+
+        //完了フラグはdraw()の途中で使われているよ
+        //そこで次のイベントがあれば呼び出し
+    }
+}
+
 
 //プロジェクトのjsonをすべてオブジェクトにロードする
 function loadJsonToObj() {
@@ -944,15 +1252,33 @@ function keyDownHandler(evt) {
                     break;
 
                 case 69: //Eボタン
-                    drawFlg = false;
-                    console.log("aaaaaaaaaaaaa");
-                    //ここで音を出す
-                    viewCanvas.classList.add("yokoburu");
-                    window.setTimeout(function(){
-                        viewCanvas.classList.remove("yokoburu");
-                    }, 2000);
+                    // drawFlg = false;
+                    // console.log("aaaaaaaaaaaaa");
+                    // //ここで音を出す
+                    // viewCanvas.classList.add("yokoburu");
+                    // window.setTimeout(function(){
+                    //     viewCanvas.classList.remove("yokoburu");
+                    // }, 2000);
+
+// //会話用ウィンドウスタート位置X
+// var talkWinStartX = mapTipLength;
+// //会話用ウィンドウスタート位置Y
+// var talkWinStartY = viewCanvasHeight - (mapTipLength*5);
+// //会話用ウィンドウ横幅
+// var talkWinWidth = viewCanvasWidth - (mapTipLength*2);
+// //会話用ウィンドウ縦幅
+// var talkWinHeight = mapTipLength*4;
+
+                    // viewContext.fillStyle = 'red';
+                    // viewContext.fillRect(128, 25, 480, 320-32); //★これで（dot-editorの方は、480×288で画像を作成）
+                    // //会話ウィンドウを黒でクリア
+                    // viewContext.fillStyle = 'white';
+                    // viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
 
 
+                    // doTalk("test", "20210321121928_H96_W96_Nppp.png");
+
+                    doMove();
     
                 default:
                     //上記以外のキーは受け付けない
@@ -1354,6 +1680,10 @@ function doObjectEvents() {
                     var effectData =  maptipObj['events'][evtFullName];
                     doEffect(effectData);
                 break;
+                case 'move':
+                    var moveData =  maptipObj['events'][evtFullName];
+                    doMove(moveData);
+                break;
             }  
         break;
 
@@ -1436,6 +1766,10 @@ function doEvents() {
         case 'effect':
             var effectData =  maptipObj[evtFullName];
             doEffect(effectData);
+        break;
+        case 'move':
+            var moveData =  maptipObj[evtFullName];
+            doMove(moveData);
         break;
     }
 }
@@ -1597,6 +1931,8 @@ function doBattle(battleData) {
 //バトル画面を表示する
 function showBattleScreen(battleData) {
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+    viewContext.fillStyle = 'white';
+    viewContext.fillRect(0, 96, viewCanvasWidth, viewCanvasHeight);
     var chara1 =  battleData['chara1'];
     var chara2 =  battleData['chara2'];
     var chara3 =  battleData['chara3'];
@@ -1639,8 +1975,7 @@ function showBattleScreen(battleData) {
     viewContext.fillText(chara3Data["HP"], 512+10, 55); //HP
 
     //画面真ん中：敵キャラ描画（224）
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(0, 96, viewCanvasWidth, 224);
+    
     var charaGroup =  battleData['charaGroup'];
     var isBoss =  battleData['isBoss'];
     var chara1Img =  document.getElementById(chara1Data['chrImgName']);
@@ -1787,8 +2122,8 @@ function loadSpecialMapChips() {
                 
                 switch (currrentMapObj[k][l]['object']['objName']) {
                     case 'character' :
-                    var aryXYOD = [l, k, currrentMapObj[k][l]['object']['charaName'], 0]; // x y キャラネーム ディレクション（0123:上下左右)
-                    mapCharaObjects.push(aryXYOD);
+                    var aryXYODMFI = [Number(l), Number(k), currrentMapObj[k][l]['object']['charaName'], 0, null, false, null]; // x y キャラネーム ディレクション（0123:上下左右) ムーブフラグ デリートフラグ マップオブジェクト格納用
+                    mapCharaObjects.push(aryXYODMFI);
                     break;
                     case 'tool' :
                     var aryXYO = [l, k, currrentMapObj[k][l]['object']['imgName']];
