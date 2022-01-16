@@ -16,6 +16,7 @@
 
     @endcomponent
     <canvas id="viewCanvas"></canvas>
+    <button id="playRpg" onclick="playRpg()">play</button>
     <p id="eventSign">●</p>
     <div id="projectsContainer">
         <p>確認コマンド：console.log(mapObj);</p>

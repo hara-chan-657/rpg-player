@@ -143,7 +143,7 @@ var mapNames = document.getElementsByClassName('mapNames');
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////　　以下イベント   ////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
-window.addEventListener('load', setDefault, false);
+//window.addEventListener('load', setDefault, false);
 document.body.addEventListener('keydown', function(evt) {keyDownHandler(evt);}, false);
 document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, false);
 // for (var i=0; i<maps.length; i++) {
@@ -155,6 +155,11 @@ document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, fals
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////　　以下ファンクション   //////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
+
+function playRpg() {
+    setDefault();
+}
+
 //デフォルト値設定
 function setDefault() {
     loadJsonToObj();
@@ -165,18 +170,9 @@ function setDefault() {
     showStartProject();
     draw();
     loadSpecialMapChips();
+    //playBgm('map'); //マップのBGMを再生するにはコメントアウト
 }
 
-function sound(soundPath='') {
-    if (soundPath == '') {
-        //document.getElementById("overSound").currentTime = 0;
-        //document.getElementById("overSound").play();
-    } else {
-        soundPath = '/sounds/' + soundPath;
-        document.getElementById(soundPath).currentTime = 0;
-        document.getElementById(soundPath).play();
-    }
-}
 
 //マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に5ミリ秒毎に動き続ける。
 var drawSpeed = 5; //描画スピード
@@ -274,6 +270,29 @@ function drawCanvas() {
     drawTurnChip(); //マップ交互の描画
     drawMoveObjFlg ? drawObjectsWithMove() : drawObjects();//オブジェクトの描画（キャラクター/ツール）
     drawMainCharacter(); //メインキャラの描画
+}
+
+function sound(soundPath='') {
+    if (soundPath == '') {
+        //document.getElementById("overSound").currentTime = 0;
+        //document.getElementById("overSound").play();
+    } else {
+        soundPath = '/sounds/' + soundPath;
+        document.getElementById(soundPath).currentTime = 0;
+        document.getElementById(soundPath).play();
+    }
+}
+
+//BGMを流す
+function playBgm(type) {
+
+    switch(type) {
+        case 'map':
+            if (projectDataObj['mapBGM'].hasOwnProperty(currentMapImg.alt))
+            sound(projectDataObj['mapBGM'][currentMapImg.alt]);
+        break;
+    }
+
 }
 
 /////////////////////////////////////////////////////////テスト start
