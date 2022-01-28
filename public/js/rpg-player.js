@@ -247,13 +247,6 @@ function draw() {
     //描画フラグがtrueならマップとオブジェクトとメインキャラクターを描画
     if (drawFlg) {
         drawCanvas() //キャンバスに描画する部分の関数をこの関数にまとめる（単に画面をリセットしたい場合など、この関数を呼べるようにするため）
-
-        //////////////////////////////////テスト start
-        drawOnotherCharacter(); //とりあえずobjの単純表示はできそう
-        drawlmr();
-        drawGoRight();
-        //////////////////////////////////テスト end
-
         setTimeout("draw()", drawSpeed); //1000分の5ミリ秒毎に毎回描画を繰り返す
     } else {
         //drawFlgがfalseの場合はdrawの繰り返しを止める。再会するにはtrueを代入し、draw()をコールする。
@@ -270,6 +263,346 @@ function drawCanvas() {
     drawTurnChip(); //マップ交互の描画
     drawMoveObjFlg ? drawObjectsWithMove() : drawObjects();//オブジェクトの描画（キャラクター/ツール）
     drawMainCharacter(); //メインキャラの描画
+}
+
+function keyUpHandler(evt) {
+    console.log(evt.keyCode);
+}
+
+function keyDownHandler(evt) { 
+    //スクロールフラグがfalseの間(止まっている時)のみ、キーダウンイベント受け付け
+    if (!scrollState) {
+        //会話中の時
+        if (talkFlg) {
+            switch (evt.keyCode) {
+                case 65: //Aボタン
+                    //次の会話を表示
+                    nextTalk();
+                    break;
+                default:
+                    //上記以外のキーは受け付けない
+                    return;
+                    break;
+            }
+        //質問の時
+        } else if (questionFlg) {
+            switch (evt.keyCode) {
+                case 38: //上
+                    //カーソルを上に (はいを選択)
+                    showYesNo(0);
+                break;
+                case 40: //下
+                    //カーソルを下に (いいえを選択)
+                    showYesNo(1);
+                break;
+                case 65: //Aボタン
+                    //はいいいえを選んだ処理、質問イベントを終了する
+                    questionFlg = false; //質問フラグを戻す
+                    //画面クリア
+                    drawCanvas();
+                    if (eventIndex+1 != events.length) {
+                        //次のイベントがあったら次のイベント呼び出し
+                        //はいいいえの結果は引数に与えない、呼び出し先で変数targetAnswerを参照する
+                        eventIndex++;
+                        if(doingEvtType == 'map') {
+                            doEvents();
+                        } else {
+                            doObjectEvents();
+                        }
+                    } else {
+                        eventIndex = 0;
+                        drawFlg = true;
+                        draw(); //再描画開始
+                    }
+                    break;
+                default:
+                    //上記以外のキーは受け付けない
+                    return;
+                    break;
+            }
+
+        //バトルの時
+        } else if (battleFlg) {
+            //バトルオプション選択時
+            if (selectBattleOptionFlg) {
+                switch (evt.keyCode) {
+                    case 38: //上
+                        //カーソルを上に
+                        if (targetBattleOption != 0) {
+                            targetBattleOption--;
+                            showBattleOptions();
+                        }
+                    break;
+                    case 40: //下
+                        //カーソルを下に
+                        if (targetBattleOption != battleOptions.length-1) {
+                            targetBattleOption++;
+                            showBattleOptions();
+                        }
+                    break;
+                    case 65: //Aボタン
+                        switch (targetBattleOption) {
+                            case 0: //たたかう
+                                //
+
+                            break;
+                            case 1: //逃げる
+                                //battleFlg = false;
+                                selectBattleOptionFlg = false;
+                                battleEndFlg = true;
+                                doTalk("逃げる〜〜〜〜！！");
+                            break;
+                            default:
+                            break;
+                        }
+                        break;
+                    default:
+                        //上記以外のキーは受け付けない
+                        return;
+                        break;
+                }
+            }
+
+        //道具の時
+        } else if (toolFlg) {
+            //ツールウィンドウオープン時
+            var lineSpace = 32;
+            switch (evt.keyCode) {
+                case 38: //上
+                    //上を押した時点で、▼カーソルは100%削除
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace), 35, 35);
+
+                    //手持ちの最初になった場合
+                    if (currrentToolIndex == 0) {
+                        //前回カーソル表示部分クリア
+                        viewContext.fillStyle = 'white';
+                        viewContext.fillRect(200+2+10+450, (50+2)+(0*lineSpace), 35, 35);
+                        //手持ちの最初なのでreturn
+                        return;
+                    }
+
+                    //ツールのインデックスをずらす
+                    currrentToolIndex--;
+
+                    //手持ちの最初でない（上記条件） && カーソルが画面表示数の最初を指している && ずらした後のインデックスが、画面表示の最初の場合（＝も含む）
+                    if (screenToolIndex == 0 && currrentToolIndex >= 0) {
+                        var res = showHaveTools(currrentToolIndex);
+                        viewContext.fillStyle = 'black';
+                        if (currrentToolIndex != 0) {
+                            //ずらした後のインデックスが手持ちの最初になった場合のみ、▼を表示しない（最初より大きい場合は、ここで▲を表示する）
+                            viewContext.fillText('▲', 200+2+10+450, (50+2)+(0*lineSpace)); //450は適当な横ずらし用の数字
+                        }
+                        //最初の行にカーソルを当てる
+                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(0*lineSpace));
+
+                    } else {
+                    //カーソルを上に表示
+                        viewContext.fillStyle = 'white';
+                        viewContext.fillRect(200+2, 50+2, 50, 250-4);//前回カーソル表示部分クリア
+                        //カーソルを一行上に表示
+                        screenToolIndex--; //画面内▶︎indexを上にずらす
+                        viewContext.fillStyle = 'black';
+                        if (screenToolIndex == 0 && currrentToolIndex > 0) {
+                            //ずらした後のインデックスが手持ちの最初になった場合のみ、▼を表示しない（最初より大きい場合は、ここで▲を表示する）
+                            viewContext.fillText('▲', 200+2+10+450, (50+2)+(0*lineSpace)); //450は適当な横ずらし用の数字
+                        }
+                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(screenToolIndex*lineSpace)); //表示位置を一行下げる（currrentToolIndexを使う）
+                    }
+                    //説明を表示
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4); //前回表示クリア
+                    toolDescription(prjTools[haveTools[currrentToolIndex]]['description']);
+                    //音を出す
+                    sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
+
+                break;
+                case 40: //下
+                    //下を押した時点で、▼カーソルは100%削除
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(200+2+10+450, (50+2)+(0*lineSpace), 35, 35);
+
+                    //現在のインデックスをずらす前に、インデックスが手持ちの最大だったらreturn（画面表示数に関係なく）
+                    if (currrentToolIndex == haveTools.length-1) return;
+                    
+                    //インデックスをずらす
+                    currrentToolIndex++;
+
+                    if (screenToolIndex == maxToolDispNum-1 && currrentToolIndex >= maxToolDispNum-1) {
+                    //手持ちの最大でない && カーソルが画面表示数の最大を指している && ずらした後のインデックスが、画面表示上限数「以上」の場合（＝も含む）
+
+                        var res = showHaveTools(currrentToolIndex - (maxToolDispNum-1));
+                        viewContext.fillStyle = 'black';
+                        if (currrentToolIndex != haveTools.length-1) {
+                            //ずらした後のインデックスが手持ちの最大になった場合のみ、▼を表示しない（最大より大きい場合は、ここで▼を表示する）
+                            viewContext.fillText('▼', 200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace)); //450は適当な横ずらし用の数字
+                        }
+                        //最下行にカーソルを当てる
+                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+((maxToolDispNum-1)*lineSpace));
+
+                    } else {
+                    //カーソルを下に表示
+                        viewContext.fillStyle = 'white';
+                        viewContext.fillRect(200+2, 50+2, 50, 250-4);//前回カーソル表示部分クリア
+                        //カーソルを一行下に表示
+                        screenToolIndex++; //画面内▶︎indexを下にずらす
+                        viewContext.fillStyle = 'black';
+                        if (screenToolIndex == maxToolDispNum-1 && currrentToolIndex < haveTools.length-1) {
+                            //ずらした後のインデックスが手持ちの最大になった場合のみ、▼を表示しない（最大より大きい場合は、ここで▼を表示する）
+                            viewContext.fillText('▼', 200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace)); //450は適当な横ずらし用の数字
+                        }
+                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(screenToolIndex*lineSpace)); //表示位置を一行下げる（currrentToolIndexを使う）
+                    }
+                    //説明を表示
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4); //前回表示クリア
+                    toolDescription(prjTools[haveTools[currrentToolIndex]]['description']);
+                    if (currrentToolIndex == haveTools.length-1) {
+                        //手持ちの最後になった場合、▼を消す
+                        viewContext.fillStyle = 'white';
+                        viewContext.fillRect(200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace), 35, 35);//前回カーソル表示部分クリア
+                    }
+                    //音を出す
+                    sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
+                break;
+                case 84: //tキー
+                    sound('bgm/分類無し効果音/キャンセル2.mp3');
+                    toolFlg = false;
+                    currrentToolIndex = 0; // ツールインデックスを0に戻す
+                    eventIndex = 0;
+                    drawFlg = true;
+                    draw(); //再描画開始
+                break;
+                default:
+                    //上記以外のキーは受け付けない
+                return;
+                break;
+            }
+
+        } else if(effectFlg) {
+            switch (evt.keyCode) {
+                case 65: //Aボタン
+                    effectFlg = false;
+                    //次のイベントorイベント終了
+                    if (eventIndex+1 != events.length) {
+                       //画面をクリア
+                        drawCanvas();
+                        eventIndex++;
+                        if(doingEvtType == 'map') {
+                            doEvents();
+                        } else {
+                            doObjectEvents();
+                        }
+                    } else {
+                        eventIndex = 0;
+                        drawFlg = true;
+                        draw(); //再描画開始
+                    }
+                    break;
+            }
+
+        } else if(sceneFlg) {
+            switch (evt.keyCode) {
+                case 65: //Aボタン
+
+                    var talk = sceneEvts[sceneEvtsIndex]['talkContent'];
+                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];
+                    doTalk(talk, wipe);
+
+                    //揺れ（あったら）
+                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType")) {
+                        //ゆらす
+                        shake(sceneEvts[sceneEvtsIndex]['shakeType']);
+                    }
+
+                    //サウンド（あったら）
+                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty("sound")) {
+                        sound(sceneEvts[sceneEvtsIndex]['sound']);
+                    }
+
+                    break;
+            }
+
+        } else {
+            switch (evt.keyCode) {
+                case 37: //左
+                    scrollDir = 'left';
+                    mainCharaDir = scrollDir;
+                    mainCharaImg =  mainCharaImgArray[8];
+                    break;
+        
+                case 38: //上
+                    scrollDir = 'up';
+                    mainCharaDir = scrollDir;
+                    mainCharaImg =  mainCharaImgArray[3];
+                    break;
+        
+                case 39: //右
+                    scrollDir = 'right';
+                    mainCharaDir = scrollDir;
+                    mainCharaImg =  mainCharaImgArray[6];
+                    break;
+        
+                case 40: //下
+                    scrollDir = 'down';
+                    mainCharaDir = scrollDir;
+                    mainCharaImg =  mainCharaImgArray[0];
+                    break;
+                
+                case 65: //Aボタン
+                    //オブジェクトのチェック（イベントより優先度高）
+                    var res = checkObject(scrollDir);
+                    if (res != false) {
+                        maptipObj = res;
+                        doingEvtType = 'obj';
+                        doObjectEvents();
+                    }                    
+
+                    //トリガーAボタンのチェック
+                    var res = checkTrigger('Aボタン', scrollDir);
+                    if (res != false) {
+                        maptipObj = res;
+                        doingEvtType = 'evt';
+                        doEvents();
+                    }
+                    return;
+                    break;
+
+                case 84: //Tボタン
+                    //道具モード
+                    drawFlg = false;
+                    toolFlg = true;
+                    var res = showHaveTools();
+                    sound('bgm/分類無し効果音/キャンセル1.mp3');
+                    if (res) viewContext.fillText('▶︎', 200+2+10, 50+2+5);
+                    return;
+                    break;
+
+                case 69: //Eボタン
+
+                    viewContext.fillStyle = 'red';
+                    viewContext.fillRect(128, 25, 480, 320-32); //★これで（dot-editorの方は、480×288で画像を作成）
+                    //会話ウィンドウを黒でクリア
+                    viewContext.fillStyle = 'white';
+                    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
+
+
+                    doTalk("test", "20210321121928_H96_W96_Nppp.png");
+    
+                default:
+                    //上記以外のキーは受け付けない
+                    return;
+                    break;
+            }
+            if(checkStartMoveEvent()) {
+                scrollState = true;
+            } else {
+                //一マス進めなかった場合
+                //進入フラグを初期化する。
+                enterFlg = false;
+            }
+        }
+    }   
 }
 
 function sound(soundPath='') {
@@ -295,112 +628,6 @@ function playBgm(type) {
 
 }
 
-/////////////////////////////////////////////////////////テスト start
-var imgL = document.getElementById("l");
-var imgM = document.getElementById("m");
-var imgR = document.getElementById("r");
-var imgDr = document.getElementById("dr");
-var imgDrr = document.getElementById("drr");
-var imgDrl = document.getElementById("drl");
-var imgDl = document.getElementById("dl");
-var imgDlr = document.getElementById("dlr");
-var imgDll = document.getElementById("dll");
-
-//オーキド博士みたいな、オブジェクトのみ移動するファンクション
-//将来的には、以下のインプットで自動で流せるようにしたい
-//①キャラクターの種類
-//②進む方向
-//③どのほど進むか（0も含む。方向を変えるため）。
-//④スピード（これは固定でいくつか決めておいたほうか良いかな）
-var indexD = 0; //imgAryDのインデックス用
-var posXD = 0;  //X方向の何マス目にいるかの数字
-var wentPx = 0; //進んだピクセル
-var count = 0   //進むスピードを変化させるための数字。
-var imgAryD = [imgDr, '進む', '進む', '進む', '進む', imgDr, '進む', imgDr];
-var imgAryDr = [imgDrr, imgDrl];
-var leg = 0;
-//var imgAryD = [imgDr, imgDrl, imgDrr, imgDrl, imgDrr, imgDrl, imgDrr, imgDrl, imgDr];
-function drawGoRight() {
-    // 
-    if (count % 3 == 0) {
-        //drawの３回毎に移動する（一回毎だと早すぎた。逆に言えば、スピードはここで変えられる。）
-        if (imgAryD[indexD] == imgDr) {
-            //静止。
-            viewContext.drawImage(imgDr,320+(posXD*mapTipLength), 96);
-            wentPx++;
-        } else {
-            //動く。wentPx分追加して描画する。
-            viewContext.drawImage(imgAryDr[leg%2],320+(posXD*mapTipLength+wentPx), 96);
-            wentPx++;
-        }
-
-        if (wentPx == mapTipLength) {
-            //1チップ分wentPxが増えたら
-            if (imgAryD[indexD] != imgDr) {
-                //現在のアイコンが、右向きの静止「以外」だったら（つまり進行中のアイコンだった場合のみ）
-                posXD++; //一マス進んだことにする。
-            }
-            indexD++;
-            wentPx = 0;
-            leg++; 
-        }   
-    } else {
-        //count3の時以外も表示だけはしないと、点滅みたいになっちゃう（３回に１回しか表示しないから）
-        if (imgAryD[indexD] == imgDr) {
-            //静止
-            viewContext.drawImage(imgAryD[indexD],320+(posXD*mapTipLength), 96);
-            //wentPx++;
-        } else {
-            viewContext.drawImage(imgAryDr[leg%2],320+(posXD*mapTipLength+wentPx), 96);
-            //wentPx++;
-        }
-    }
-    count++;
-}
-
-var switchCount = 0;
-var switchCountMax = 100;
-var switched = 0;
-//var imgAry = [imgL, imgM, imgR];
-var imgAry = [imgL, imgR];
-var vImg = imgAry[0];
-var index = 0;
-function drawlmr() {
-    viewContext.drawImage(imgAry[index], 32, 32);
-    switchCount++;
-    if (switchCount == switchCountMax) {
-        index++;
-        if (index == imgAry.length) index = 0;
-        switchCount = 0;
-    }
-}
-function drawOnotherCharacter() {
-    //他きゃらの場所は決まっているものとする
-
-    //とりあえず固定で表示するだけならこれ
-    //viewContext.drawImage(mainCharaImg, viewCanvasHalfWidth-mainCharaPosX + 32, viewCanvasHalfHeight-mainCharaPosY + 32);
-    
-    //何か決まった間隔の繰り返しで行いたい時はかきのコード
-    // viewContext.drawImage(mainCharaImg, viewCanvasHalfWidth-mainCharaPosX + 32, viewCanvasHalfHeight-mainCharaPosY + 32 + (switched * 32));
-    // switchCount++;
-    // if (switchCount == switchCountMax) {
-    //     switched++;
-    //     switchCount = 0;
-    // }
-
-        //イメージの繰り返ししたい時はこれ（横流し）
-        viewContext.drawImage(mainCharaImg, 0+shiftX, 0, 32-shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + 32, viewCanvasHalfHeight-mainCharaPosY + 32, 32-shiftX, 32);//なんか最後の引数dxがよくわからんけどできた
-        viewContext.drawImage(mainCharaImg, 0, 0, shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + 32+32-shiftX, viewCanvasHalfHeight-mainCharaPosY + 32, shiftX, 32);   //なんか最後の引数dxがよくわからんけどできた
-         if (doing == doNum) {
-            shiftX++;
-            if (shiftX == shiftCountMax) {
-                shiftX = 0;
-            }
-            doing = 0;
-        }
-        doing++;
-}
-/////////////////////////////////////////////////////////テスト end
 
 //海のような、繰り返して動いているマップチップを描画する
 //マップチップタイプ6（マップ繰り返し）のマップチップを繰り返し描画する
@@ -555,20 +782,6 @@ function doMove(moveData) {
         } while(moveData.hasOwnProperty(moveChipNameKey));
     } 
 
-    // var target1 = [3,0,[0,0,2,2,0,0,3,0],true,obj1]; //x y order 削除フラグ 追加オブジェクト 消去済みフラグ
-    // var target2 = [4,0,[0,2,1,3],false,null]; //x y order 削除フラグ 追加オブジェクト
-    // var target3 = [7,6,[4,4,4,4,4,4,2,2,4,4,4,4,4,4,4,4,1,4,4,4,4,4,4,4,4,2,2,3,1],false,null]; //x y order 削除フラグ 追加オブジェクト
-
-    // if (tmpCount == 1) {
-    //     targetChips.push(target1);
-    //     targetChips.push(target2);
-    //     targetChips.push(target3);
-    // } else {
-    //     targetChips.push(target2);
-    // }
-    // tmpCount++;
-
-
     //フラグを変える
     //他のフラグとかは大丈夫か、、
     drawMoveObjFlg = true;
@@ -638,6 +851,39 @@ function doMove(moveData) {
         draw();
     }
 }
+
+//シーンを表示する
+//まずは無条件で、カットシーン表示
+//Aボタン押したら、sceneEvtの分だけ設定内容のイベント（トーク、シェイク、サウンド）を実行する。
+//sceneEvtがなければ、Aボタンで即終了
+var sceneFlg = false;
+var sceneEvts = [];
+var sceneEvtsIndex = 0;
+var sceneImg = null;
+function doScene(sceneData) {
+    //console.log(sceneData);
+    //drawを止める
+    drawFlg = false;
+    //シーン中にする
+    sceneFlg = true;
+    //バトル画面を表示する
+    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);  
+    sceneImg =  document.getElementById(sceneData['cutSceneSrc']);
+    viewContext.drawImage(sceneImg, 128, 29);
+    //シーンイベントを詰める
+    var index = 1
+    while(sceneData.hasOwnProperty('sceneEvt_'+index)) {
+        sceneEvts.push(sceneData['sceneEvt_'+index]);
+        index++;
+    }
+    //必要なら表示のタイミングで音を出す
+    //sound();
+
+    //あとはシーンイベントをAボタンで実行していく。
+    //なくなったら、次のイベント
+
+}
+
 
 //キャラ移動の実態はこれ
 //グローバルに格納済みのオブジェクト移動情報（mapCharaObjectsMove）をもとに描画する
@@ -976,344 +1222,6 @@ function drawMainCharacter() {
 //     viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
 // }
 
-
-
-function keyUpHandler(evt) {
-    console.log(evt.keyCode);
-}
-
-function keyDownHandler(evt) { 
-    //スクロールフラグがfalseの間(止まっている時)のみ、キーダウンイベント受け付け
-    if (!scrollState) {
-        //会話中の時
-        if (talkFlg) {
-            switch (evt.keyCode) {
-                case 65: //Aボタン
-                    //次の会話を表示
-                    nextTalk();
-                    break;
-                default:
-                    //上記以外のキーは受け付けない
-                    return;
-                    break;
-            }
-        //質問の時
-        } else if (questionFlg) {
-            switch (evt.keyCode) {
-                case 38: //上
-                    //カーソルを上に (はいを選択)
-                    showYesNo(0);
-                break;
-                case 40: //下
-                    //カーソルを下に (いいえを選択)
-                    showYesNo(1);
-                break;
-                case 65: //Aボタン
-                    //はいいいえを選んだ処理、質問イベントを終了する
-                    questionFlg = false; //質問フラグを戻す
-                    //画面クリア
-                    drawCanvas();
-                    if (eventIndex+1 != events.length) {
-                        //次のイベントがあったら次のイベント呼び出し
-                        //はいいいえの結果は引数に与えない、呼び出し先で変数targetAnswerを参照する
-                        eventIndex++;
-                        if(doingEvtType == 'map') {
-                            doEvents();
-                        } else {
-                            doObjectEvents();
-                        }
-                    } else {
-                        eventIndex = 0;
-                        drawFlg = true;
-                        draw(); //再描画開始
-                    }
-                    break;
-                default:
-                    //上記以外のキーは受け付けない
-                    return;
-                    break;
-            }
-
-        //バトルの時
-        } else if (battleFlg) {
-            //バトルオプション選択時
-            if (selectBattleOptionFlg) {
-                switch (evt.keyCode) {
-                    case 38: //上
-                        //カーソルを上に
-                        if (targetBattleOption != 0) {
-                            targetBattleOption--;
-                            showBattleOptions();
-                        }
-                    break;
-                    case 40: //下
-                        //カーソルを下に
-                        if (targetBattleOption != battleOptions.length-1) {
-                            targetBattleOption++;
-                            showBattleOptions();
-                        }
-                    break;
-                    case 65: //Aボタン
-                        switch (targetBattleOption) {
-                            case 0: //たたかう
-                                //
-
-                            break;
-                            case 1: //逃げる
-                                //battleFlg = false;
-                                selectBattleOptionFlg = false;
-                                battleEndFlg = true;
-                                doTalk("逃げる〜〜〜〜！！");
-                            break;
-                            default:
-                            break;
-                        }
-                        break;
-                    default:
-                        //上記以外のキーは受け付けない
-                        return;
-                        break;
-                }
-            }
-
-        //道具の時
-        } else if (toolFlg) {
-            //ツールウィンドウオープン時
-            var lineSpace = 32;
-            switch (evt.keyCode) {
-                case 38: //上
-                    //上を押した時点で、▼カーソルは100%削除
-                    viewContext.fillStyle = 'white';
-                    viewContext.fillRect(200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace), 35, 35);
-
-                    //手持ちの最初になった場合
-                    if (currrentToolIndex == 0) {
-                        //前回カーソル表示部分クリア
-                        viewContext.fillStyle = 'white';
-                        viewContext.fillRect(200+2+10+450, (50+2)+(0*lineSpace), 35, 35);
-                        //手持ちの最初なのでreturn
-                        return;
-                    }
-
-                    //ツールのインデックスをずらす
-                    currrentToolIndex--;
-
-                    //手持ちの最初でない（上記条件） && カーソルが画面表示数の最初を指している && ずらした後のインデックスが、画面表示の最初の場合（＝も含む）
-                    if (screenToolIndex == 0 && currrentToolIndex >= 0) {
-                        var res = showHaveTools(currrentToolIndex);
-                        viewContext.fillStyle = 'black';
-                        if (currrentToolIndex != 0) {
-                            //ずらした後のインデックスが手持ちの最初になった場合のみ、▼を表示しない（最初より大きい場合は、ここで▲を表示する）
-                            viewContext.fillText('▲', 200+2+10+450, (50+2)+(0*lineSpace)); //450は適当な横ずらし用の数字
-                        }
-                        //最初の行にカーソルを当てる
-                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(0*lineSpace));
-
-                    } else {
-                    //カーソルを上に表示
-                        viewContext.fillStyle = 'white';
-                        viewContext.fillRect(200+2, 50+2, 50, 250-4);//前回カーソル表示部分クリア
-                        //カーソルを一行上に表示
-                        screenToolIndex--; //画面内▶︎indexを上にずらす
-                        viewContext.fillStyle = 'black';
-                        if (screenToolIndex == 0 && currrentToolIndex > 0) {
-                            //ずらした後のインデックスが手持ちの最初になった場合のみ、▼を表示しない（最初より大きい場合は、ここで▲を表示する）
-                            viewContext.fillText('▲', 200+2+10+450, (50+2)+(0*lineSpace)); //450は適当な横ずらし用の数字
-                        }
-                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(screenToolIndex*lineSpace)); //表示位置を一行下げる（currrentToolIndexを使う）
-                    }
-                    //説明を表示
-                    viewContext.fillStyle = 'white';
-                    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4); //前回表示クリア
-                    toolDescription(prjTools[haveTools[currrentToolIndex]]['description']);
-                    //音を出す
-                    sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
-
-                break;
-                case 40: //下
-                    //下を押した時点で、▼カーソルは100%削除
-                    viewContext.fillStyle = 'white';
-                    viewContext.fillRect(200+2+10+450, (50+2)+(0*lineSpace), 35, 35);
-
-                    //現在のインデックスをずらす前に、インデックスが手持ちの最大だったらreturn（画面表示数に関係なく）
-                    if (currrentToolIndex == haveTools.length-1) return;
-                    
-                    //インデックスをずらす
-                    currrentToolIndex++;
-
-                    if (screenToolIndex == maxToolDispNum-1 && currrentToolIndex >= maxToolDispNum-1) {
-                    //手持ちの最大でない && カーソルが画面表示数の最大を指している && ずらした後のインデックスが、画面表示上限数「以上」の場合（＝も含む）
-
-                        var res = showHaveTools(currrentToolIndex - (maxToolDispNum-1));
-                        viewContext.fillStyle = 'black';
-                        if (currrentToolIndex != haveTools.length-1) {
-                            //ずらした後のインデックスが手持ちの最大になった場合のみ、▼を表示しない（最大より大きい場合は、ここで▼を表示する）
-                            viewContext.fillText('▼', 200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace)); //450は適当な横ずらし用の数字
-                        }
-                        //最下行にカーソルを当てる
-                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+((maxToolDispNum-1)*lineSpace));
-
-                    } else {
-                    //カーソルを下に表示
-                        viewContext.fillStyle = 'white';
-                        viewContext.fillRect(200+2, 50+2, 50, 250-4);//前回カーソル表示部分クリア
-                        //カーソルを一行下に表示
-                        screenToolIndex++; //画面内▶︎indexを下にずらす
-                        viewContext.fillStyle = 'black';
-                        if (screenToolIndex == maxToolDispNum-1 && currrentToolIndex < haveTools.length-1) {
-                            //ずらした後のインデックスが手持ちの最大になった場合のみ、▼を表示しない（最大より大きい場合は、ここで▼を表示する）
-                            viewContext.fillText('▼', 200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace)); //450は適当な横ずらし用の数字
-                        }
-                        viewContext.fillText('▶︎', 200+2+10, (50+2+5)+(screenToolIndex*lineSpace)); //表示位置を一行下げる（currrentToolIndexを使う）
-                    }
-                    //説明を表示
-                    viewContext.fillStyle = 'white';
-                    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4); //前回表示クリア
-                    toolDescription(prjTools[haveTools[currrentToolIndex]]['description']);
-                    if (currrentToolIndex == haveTools.length-1) {
-                        //手持ちの最後になった場合、▼を消す
-                        viewContext.fillStyle = 'white';
-                        viewContext.fillRect(200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace), 35, 35);//前回カーソル表示部分クリア
-                    }
-                    //音を出す
-                    sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
-                break;
-                case 84: //tキー
-                    sound('bgm/分類無し効果音/キャンセル2.mp3');
-                    toolFlg = false;
-                    currrentToolIndex = 0; // ツールインデックスを0に戻す
-                    eventIndex = 0;
-                    drawFlg = true;
-                    draw(); //再描画開始
-                break;
-                default:
-                    //上記以外のキーは受け付けない
-                return;
-                break;
-            }
-
-        } else if(effectFlg) {
-            switch (evt.keyCode) {
-                case 65: //Aボタン
-                    effectFlg = false;
-                    //次のイベントorイベント終了
-                    if (eventIndex+1 != events.length) {
-                       //画面をクリア
-                        drawCanvas();
-                        eventIndex++;
-                        if(doingEvtType == 'map') {
-                            doEvents();
-                        } else {
-                            doObjectEvents();
-                        }
-                    } else {
-                        eventIndex = 0;
-                        drawFlg = true;
-                        draw(); //再描画開始
-                    }
-                    break;
-            }
-
-
-        } else {
-            switch (evt.keyCode) {
-                case 37: //左
-                    scrollDir = 'left';
-                    mainCharaDir = scrollDir;
-                    mainCharaImg =  mainCharaImgArray[8];
-                    break;
-        
-                case 38: //上
-                    scrollDir = 'up';
-                    mainCharaDir = scrollDir;
-                    mainCharaImg =  mainCharaImgArray[3];
-                    break;
-        
-                case 39: //右
-                    scrollDir = 'right';
-                    mainCharaDir = scrollDir;
-                    mainCharaImg =  mainCharaImgArray[6];
-                    break;
-        
-                case 40: //下
-                    scrollDir = 'down';
-                    mainCharaDir = scrollDir;
-                    mainCharaImg =  mainCharaImgArray[0];
-                    break;
-                
-                case 65: //Aボタン
-                    //オブジェクトのチェック（イベントより優先度高）
-                    var res = checkObject(scrollDir);
-                    if (res != false) {
-                        maptipObj = res;
-                        doingEvtType = 'obj';
-                        doObjectEvents();
-                    }                    
-
-                    //トリガーAボタンのチェック
-                    var res = checkTrigger('Aボタン', scrollDir);
-                    if (res != false) {
-                        maptipObj = res;
-                        doingEvtType = 'evt';
-                        doEvents();
-                    }
-                    return;
-                    break;
-
-                case 84: //Tボタン
-                    //道具モード
-                    drawFlg = false;
-                    toolFlg = true;
-                    var res = showHaveTools();
-                    sound('bgm/分類無し効果音/キャンセル1.mp3');
-                    if (res) viewContext.fillText('▶︎', 200+2+10, 50+2+5);
-                    return;
-                    break;
-
-                case 69: //Eボタン
-                    // drawFlg = false;
-                    // console.log("aaaaaaaaaaaaa");
-                    // //ここで音を出す
-                    // viewCanvas.classList.add("yokoburu");
-                    // window.setTimeout(function(){
-                    //     viewCanvas.classList.remove("yokoburu");
-                    // }, 2000);
-
-// //会話用ウィンドウスタート位置X
-// var talkWinStartX = mapTipLength;
-// //会話用ウィンドウスタート位置Y
-// var talkWinStartY = viewCanvasHeight - (mapTipLength*5);
-// //会話用ウィンドウ横幅
-// var talkWinWidth = viewCanvasWidth - (mapTipLength*2);
-// //会話用ウィンドウ縦幅
-// var talkWinHeight = mapTipLength*4;
-
-                    // viewContext.fillStyle = 'red';
-                    // viewContext.fillRect(128, 25, 480, 320-32); //★これで（dot-editorの方は、480×288で画像を作成）
-                    // //会話ウィンドウを黒でクリア
-                    // viewContext.fillStyle = 'white';
-                    // viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
-
-
-                    // doTalk("test", "20210321121928_H96_W96_Nppp.png");
-
-                    doMove();
-    
-                default:
-                    //上記以外のキーは受け付けない
-                    return;
-                    break;
-            }
-            if(checkStartMoveEvent()) {
-                scrollState = true;
-            } else {
-                //一マス進めなかった場合
-                //進入フラグを初期化する。
-                enterFlg = false;
-            }
-        }
-    }   
-}
 
 var currrentToolIndex = 0; //現在選択中のツールインデックス用の変数、ここでは使わず、キーイベント受付のタイミングで使用
 var screenToolIndex = 0; //画面上の▶︎ののインデックス、ここでは使わず、キーイベント受付のタイミングで使用
@@ -1703,6 +1611,10 @@ function doObjectEvents() {
                     var moveData =  maptipObj['events'][evtFullName];
                     doMove(moveData);
                 break;
+                case 'scene':
+                    var sceneData =  maptipObj['events'][evtFullName];
+                    doScene(sceneData);
+                break;
             }  
         break;
 
@@ -1790,6 +1702,10 @@ function doEvents() {
             var moveData =  maptipObj[evtFullName];
             doMove(moveData);
         break;
+        case 'scene':
+            var sceneData =  maptipObj[evtFullName];
+            doScene(sceneData);
+        break;
     }
 }
 
@@ -1797,7 +1713,6 @@ function doEvents() {
 var effectFlg = false;
 //エフェクト実行
 function doEffect(effectData) {
-    console.log(effectData);
     switch(effectData['type']){
         case 'shake':
             //drawを止める
@@ -1805,25 +1720,8 @@ function doEffect(effectData) {
             effectFlg = true;
 
             //cssはここのサイトから作成（https://mo2nabe.com/css-shake-elements/）
+            shake(effectData['shakeType']);
 
-            //ゆらす
-            if (effectData['shakeType'] == 'v') {
-            //縦揺れ
-                viewCanvas.classList.add("tateburu");
-                window.setTimeout(function(){
-                    viewCanvas.classList.remove("tateburu");
-                }, 1000);//縦揺れは短めに設定
-
-            } else if (effectData['shakeType'] == 'h') {
-            //横揺れ
-                viewCanvas.classList.add("yokoburu");
-                window.setTimeout(function(){
-                    viewCanvas.classList.remove("yokoburu");
-                }, 2000);//横揺れはちょっと長く
-
-            } else {
-
-            }
             //音を出す
             var soundPath = effectData['sound'];
             //音源場所から、持ってきてならす（既存サンプル参考に）
@@ -1870,11 +1768,28 @@ function doEffect(effectData) {
         break;
 
     }
+}
 
+//揺れ専用ファンクション
+function shake(type) {
+    //ゆらす
+    if (type == 'v') {
+    //縦揺れ
+        viewCanvas.classList.add("tateburu");
+        window.setTimeout(function(){
+            viewCanvas.classList.remove("tateburu");
+        }, 1000);//縦揺れは短めに設定
 
+    } else if (type == 'h') {
+    //横揺れ
+        viewCanvas.classList.add("yokoburu");
+        window.setTimeout(function(){
+            viewCanvas.classList.remove("yokoburu");
+        }, 2000);//横揺れはちょっと長く
 
+    } else {
 
-
+    }
 }
 
 //道具
@@ -2033,11 +1948,16 @@ function doTransition(trasitionDataObj) {
     //遷移専用の音を出す。
     sound('bgm/分類無し効果音/決定、ボタン押下5.mp3');
 
+    // var imgObj = new Image();
+    // imgObj.src = '/rpg-player/public/image/test.gif';
+
+    viewContext.drawImage(imgObj,0,0);
+
     //0.7秒スリープさせる
     const d1 = new Date();
     while (true) {
         const d2 = new Date();
-        if (d2 - d1 > 420) {
+        if (d2 - d1 > 4200) {
             break;
         }
     }
@@ -2177,13 +2097,14 @@ function doTalk(talkContent, wipe = '') {
         var ePos = wipe.indexOf('.png');
         var nameRange = ePos - sPos;
         var wipeName = wipe.substr(sPos, nameRange);
+        viewContext.font = talkFont; //文字の長さを測る前に文字の大きさを決定しないといけない
         var wipeNameLength = viewContext.measureText(wipeName);
         viewContext.fillStyle = 'white';
-        viewContext.fillRect(talkWinStartX+100+2, talkWinStartY-35, wipeNameLength.width, 32);
+        viewContext.fillRect(talkWinStartX+100+2, talkWinStartY-35, wipeNameLength.width+6, 35);
         viewContext.fillStyle = 'black';
         viewContext.textBaseline = 'top';
-        viewContext.font = talkFont;
-        viewContext.fillText(wipeName, talkWinStartX+100+2, talkWinStartY-30);
+
+        viewContext.fillText(wipeName, talkWinStartX+100+2+4, talkWinStartY-30);
     }
 
     //会話ウィンドウを黒でクリア
@@ -2418,6 +2339,56 @@ function nextTalk() {
         } else if (questionFlg) {
             var ret = showYesNo(0);
             return ret;
+
+        } else if (sceneFlg) {
+            if (sceneEvtsIndex+1 != sceneEvts.length) {
+            //次のシーンイベントがあれば実行
+
+                //バトル画面を表示する
+                viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);  
+                viewContext.drawImage(sceneImg, 128, 29);
+
+                sceneEvtsIndex++;
+                var talk = sceneEvts[sceneEvtsIndex]['talkContent'];
+                if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];
+                doTalk(talk, wipe);
+
+                //揺れ（あったら）
+                if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType")) {
+                    var effectData = new Object();
+                    effectData['type'] = 'shake';
+                    effectData['shakeType'] = sceneEvts[sceneEvtsIndex]['shakeType'];
+                    doEffect(effectData);
+                }
+
+                //サウンド（あったら）
+                if (sceneEvts[sceneEvtsIndex].hasOwnProperty("sound")) {
+                    sound(sceneEvts[sceneEvtsIndex]['sound']);
+                }
+
+            } else {
+            //なければ次のイベント
+                //必要なら終わりのタイミングで音を出す
+                //sound();
+
+                //シーン関係の変数を戻す
+                sceneFlg = false;
+                sceneEvts = [];
+                sceneEvtsIndex = 0;
+                sceneImg = null;
+                drawFlg = true;
+                draw(); //再描画開始
+                if (eventIndex+1 != events.length) {
+                    eventIndex++;
+                    if(doingEvtType == 'map') {
+                        doEvents();
+                    } else {
+                        doObjectEvents();
+                    }
+                } else {
+                    eventIndex = 0;
+                }
+            }
 
         } else if (eventIndex+1 != events.length) {
             //次のイベントがあったら

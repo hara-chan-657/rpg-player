@@ -17,7 +17,7 @@
     @endcomponent
     <canvas id="viewCanvas"></canvas>
     <button id="playRpg" onclick="playRpg()">play</button>
-    <p id="eventSign">●</p>
+    <!-- <p id="eventSign">●</p> -->
     <div id="projectsContainer">
         <p>確認コマンド：console.log(mapObj);</p>
         <button onclick="openHiddenInfo()">オープン</button>
@@ -109,6 +109,24 @@
                 </div>
             @endforeach        
         </div>
+        <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
+        <!-- シーン -->
+        @foreach($scenes as $scene)
+            <div class="eachSceneContainer eachContainer">
+                <p class="sceneNames">{{$scene['baseName']}}</p>
+                <img src="{{$scene['path']}}" id="{{$scene['baseName']}}" class='scenes' width="240" height="144" alt="{{$scene['baseName']}}">
+            </div>
+        @endforeach
+        <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
+        <!-- スペシャルスキル -->
+        @foreach($specialSkills as $key => $charaDir)
+            <div class="eachSpecialSkillContainer eachContainer" alt="{{$key}}">
+                <p class="{{$key}}">{{$key}}</p>
+                @foreach($charaDir as $skillPng)
+                    <img src="{{$skillPng['path']}}" id="{{$skillPng['baseName']}}" class="skillPng" alt="{{$skillPng['baseName']}}">
+                @endforeach
+            </div>
+        @endforeach
     </div>
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
         @foreach($sounds as $sound)

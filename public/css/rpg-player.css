@@ -13,6 +13,12 @@ html {
     position: fixed;
 }
 
+#playRpg {
+    margin-top: 515px;
+    position: fixed;
+    font-size: 25px;
+}
+
 #eventSign {
     margin-top: 515px;
     position: fixed;

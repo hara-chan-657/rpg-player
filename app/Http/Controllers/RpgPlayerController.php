@@ -142,6 +142,32 @@ class RpgPlayerController extends Controller
                 }
             }
         }
+
+        //カットシーン取得
+        $i = 0; //カットシーン画像インデックス
+        $specialSkills = array();
+        foreach(glob('./projects/*') AS $prjDir ) {
+            foreach(glob($prjDir . '/cutScenes/specialSkill/*') AS $charaDir ) {
+                foreach(glob($charaDir .'/*.png') AS $specialSkill){
+                    if(is_file($specialSkill)){
+                        $specialSkills[$charaDir][$i]['path'] = $specialSkill;
+                        $specialSkills[$charaDir][$i]['baseName'] = basename($specialSkill);
+                        $i++;
+                    }
+                }
+            }
+        }
+        $i = 0;
+        $scenes = array();
+        foreach(glob('./projects/*') AS $prjDir ) {
+            foreach(glob($prjDir . '/cutScenes/scene/*.png') AS $scene ) {
+                if(is_file($scene)){
+                    $scenes[$i]['path'] = $scene;
+                    $scenes[$i]['baseName'] = basename($scene);
+                    $i++;
+                }
+            }
+        }
         // //サウンド取得
         // //$i = 0; //インデックス
         // $sounds = array();
@@ -172,7 +198,9 @@ class RpgPlayerController extends Controller
                         'tools'=>$tools,
                         'turnChips'=>$turnChips,
                         'turnPassChips'=>$turnPassChips,
-                        'sounds'=>$sounds
+                        'sounds'=>$sounds,
+                        'specialSkills'=>$specialSkills,
+                        'scenes'=>$scenes
                     ]
         );
     }
