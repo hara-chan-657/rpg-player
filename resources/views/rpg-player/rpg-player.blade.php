@@ -20,7 +20,7 @@
     <!-- <p id="eventSign">●</p> -->
     <div id="projectsContainer">
         <p>確認コマンド：console.log(mapObj);</p>
-        <button onclick="openHiddenInfo()">オープン</button>
+        <!-- <button onclick="openHiddenInfo()">オープン</button> -->
         <p id="projectName">{{$project}}</p>
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
         @foreach($pngFiles as $pngFile)
@@ -127,7 +127,6 @@
                 @endforeach
             </div>
         @endforeach
-    </div>
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
         @foreach($sounds as $sound)
             <div class="eachSoundContainer eachContainer">
@@ -141,27 +140,28 @@
             </div>
         @endforeach
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
-    <img src="{{ asset('/image/mainCharacter_dummy.png') }}"/ id="dummy">
-    <img src="{{ asset('/image/l.png') }}"/ id="l">
-    <img src="{{ asset('/image/m.png') }}"/ id="m">
-    <img src="{{ asset('/image/r.png') }}"/ id="r">
-    <img src="{{ asset('/image/dr.png') }}"/ id="dr">
-    <img src="{{ asset('/image/drr.png') }}"/ id="drr">
-    <img src="{{ asset('/image/drl.png') }}"/ id="drl">
-    <img src="{{ asset('/image/dl.png') }}"/ id="dl">
-    <img src="{{ asset('/image/dlr.png') }}"/ id="dlr">
-    <img src="{{ asset('/image/dll.png') }}"/ id="dll">
-    <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
-    <audio id="overSound" preload="auto">
-        <!-- <source src="{{ asset('/sounds/effect/hokou.mp3') }}" type="audio/mp3"> -->
-        <source src="{{ asset('/sounds/bgm/SNES-Town01.mp3') }}" type="audio/mp3">
-        <!-- <source src="sound.ogg" type="audio/ogg"> -->
-        <!-- <source src="sound.wav" type="audio/wav"> -->
-        <p>※お使いのブラウザはHTML5のaudio要素をサポートしていないので音は鳴りません。</p>
-    </audio>
+        <img src="{{ asset('/image/mainCharacter_dummy.png') }}"/ id="dummy">
+        <img src="{{ asset('/image/l.png') }}"/ id="l">
+        <img src="{{ asset('/image/m.png') }}"/ id="m">
+        <img src="{{ asset('/image/r.png') }}"/ id="r">
+        <img src="{{ asset('/image/dr.png') }}"/ id="dr">
+        <img src="{{ asset('/image/drr.png') }}"/ id="drr">
+        <img src="{{ asset('/image/drl.png') }}"/ id="drl">
+        <img src="{{ asset('/image/dl.png') }}"/ id="dl">
+        <img src="{{ asset('/image/dlr.png') }}"/ id="dlr">
+        <img src="{{ asset('/image/dll.png') }}"/ id="dll">
+        <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
+        <audio id="overSound" preload="auto">
+            <!-- <source src="{{ asset('/sounds/effect/hokou.mp3') }}" type="audio/mp3"> -->
+            <source src="{{ asset('/sounds/bgm/SNES-Town01.mp3') }}" type="audio/mp3">
+            <!-- <source src="sound.ogg" type="audio/ogg"> -->
+            <!-- <source src="sound.wav" type="audio/wav"> -->
+            <p>※お使いのブラウザはHTML5のaudio要素をサポートしていないので音は鳴りません。</p>
+        </audio>
 
-    <button onclick="sound()">鳴るよ</button>
-    <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
+        <button onclick="sound()">鳴るよ</button>
+        <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
+    </div>
 <script src="{{ asset('/js/rpg-player.js') }}"></script>
 </body>
 

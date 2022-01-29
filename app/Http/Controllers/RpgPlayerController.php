@@ -168,20 +168,6 @@ class RpgPlayerController extends Controller
                 }
             }
         }
-        // //サウンド取得
-        // //$i = 0; //インデックス
-        // $sounds = array();
-        // //var_dump(scandir('../../rpg-player/public/projects'));
-        // foreach(scandir('../../rpg-player/public/sounds') AS $soundTypeDir){
-        //     if (in_array($soundTypeDir, $excludes)) continue;
-        //     foreach(scandir('../../rpg-player/public/sounds/' . $soundTypeDir) AS $soundTypeSubDir){
-        //         if (in_array($soundTypeSubDir, $excludes)) continue;
-        //         foreach(scandir('../../rpg-player/public/sounds/' . $soundTypeDir . '/'. $soundTypeSubDir) AS $soundFile){
-        //             if (in_array($soundFile, $excludes)) continue;
-        //             $sounds[$soundTypeDir][$soundTypeSubDir][] = $soundFile;
-        //         }
-        //     }
-        // }
 
         //画面に出力（デバッグ）
         //var_dump($objCharas);

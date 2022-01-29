@@ -143,7 +143,7 @@ var mapNames = document.getElementsByClassName('mapNames');
 ///////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////　　以下イベント   ////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
-//window.addEventListener('load', setDefault, false);
+window.addEventListener('load', setCanvas, false);
 document.body.addEventListener('keydown', function(evt) {keyDownHandler(evt);}, false);
 document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, false);
 // for (var i=0; i<maps.length; i++) {
@@ -166,7 +166,7 @@ function setDefault() {
     loadProjectData();
     loadImages();
     loadPrjTools();
-    setCanvas();
+    //setCanvas(); //window.addEventListener('load', setCanvas, false);で実行するよう修正
     showStartProject();
     draw();
     loadSpecialMapChips();
@@ -2355,10 +2355,8 @@ function nextTalk() {
 
                 //揺れ（あったら）
                 if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType")) {
-                    var effectData = new Object();
-                    effectData['type'] = 'shake';
-                    effectData['shakeType'] = sceneEvts[sceneEvtsIndex]['shakeType'];
-                    doEffect(effectData);
+                    //ゆらす
+                    shake(sceneEvts[sceneEvtsIndex]['shakeType']);
                 }
 
                 //サウンド（あったら）

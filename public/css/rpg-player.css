@@ -27,13 +27,13 @@ html {
 
 #projectsContainer {
     margin-top: 550px;
-    display: ;
+    display: none;
 }
 
 
 .eachContainer {
     /*float: left;*/
-    display: none;
+    display: ;
     margin: 0px 3px;
 }
 
