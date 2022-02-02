@@ -181,7 +181,7 @@ function draw() {
         //非スクロール中
         case false:
 
-            break;
+        break;
         
         //スクロール中
         case true:
@@ -202,9 +202,7 @@ function draw() {
                     mainCharaPosY++;
                     break;
             }
-            //テスト用コード
-            console.log(mainCharaPosX + ':' + mainCharaPosY);
-            break;
+        break;
     }
 
     //1マップチップ分スクロールが進んだら、変数を初期化して終了
@@ -897,6 +895,8 @@ var moveCounter = 0; // if moveCounter == mapTipLength みたいに使う
 var orderIndex = 0; //命令の番号 [左　右　下]　みたいな
 var movePxX = []; //X方向にずらす距離。キャラオブジェクト毎に保持する（movePxY[i]みたいに）
 var movePxY = []; //同上
+var scrollPosOfObj = 0;
+var sideSwitchFlgOfObj = true;
 function drawObjectsWithMove() {
     for (var i=0; i<mapCharaObjectsMove.length; i++) {
 
@@ -930,22 +930,65 @@ function drawObjectsWithMove() {
             }
         }
 
-        switch (tmp) {
-            case 3: //left  
-                if(document.getElementById(mapCharaObjectsMove[i][2]+"_9")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_8")!=null) switchCountOfObj < 64 ? index = 9: index = 8;
+        //ムーブチップだった場合 && 止まれの信号ではなかった場合
+        if (mapCharaObjectsMove[i][4] != null && tmp != 4) {
+            switch (tmp) {
+                case 3:  //left  
+                    if(document.getElementById(mapCharaObjectsMove[i][2]+"_9")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_8")!=null) {
+                        if (scrollPosOfObj <  16) index = 9;
+                        if (scrollPosOfObj >= 16) index = 8;
+                    }
                 break;
-            case 1: //up
-                if(document.getElementById(mapCharaObjectsMove[i][2]+"_5")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_4")!=null) switchCountOfObj < 64 ? index = 5: index = 4;
+                case 1: //up
+                    //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+                    if(document.getElementById(mapCharaObjectsMove[i][2]+"_5")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_4")!=null){
+                        if (sideSwitchFlgOfObj) {
+                            if (scrollPosOfObj <  16) index = 4;
+                            if (scrollPosOfObj >= 16) index = 5;
+                        } else {
+                            if (scrollPosOfObj <  16) index = 5;
+                            if (scrollPosOfObj >= 16) index = 4;
+                        } 
+                    }
                 break;
-            case 2: //right
-                if(document.getElementById(mapCharaObjectsMove[i][2]+"_7")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_6")!=null) switchCountOfObj < 64 ? index = 7: index = 6;
+                case 2: //right
+                    if(document.getElementById(mapCharaObjectsMove[i][2]+"_7")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_6")!=null){
+                        if (scrollPosOfObj <  16) index = 7;
+                        if (scrollPosOfObj >= 16) index = 6;
+                    }
                 break;
-            case 0: //down
-                if(document.getElementById(mapCharaObjectsMove[i][2]+"_2")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
+                case 0: //down
+                    //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+                    if(document.getElementById(mapCharaObjectsMove[i][2]+"_2")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_1")!=null){
+                        if (sideSwitchFlgOfObj) {
+                            if (scrollPosOfObj <  16) index = 1;
+                            if (scrollPosOfObj >= 16) index = 2;
+                        } else {
+                            if (scrollPosOfObj <  16) index = 2;
+                            if (scrollPosOfObj >= 16) index = 1;
+                        }
+                    }
                 break;
-            default :
-                // if(document.getElementById(mapCharaObjects[i][2]+"_2")!=null && document.getElementById(mapCharaObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
-                break;
+            }
+
+        } else {
+            switch (tmp) {
+                case 3: //left  
+                    if(document.getElementById(mapCharaObjectsMove[i][2]+"_9")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_8")!=null) switchCountOfObj < 64 ? index = 9: index = 8;
+                    break;
+                case 1: //up
+                    if(document.getElementById(mapCharaObjectsMove[i][2]+"_5")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_4")!=null) switchCountOfObj < 64 ? index = 5: index = 4;
+                    break;
+                case 2: //right
+                    if(document.getElementById(mapCharaObjectsMove[i][2]+"_7")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_6")!=null) switchCountOfObj < 64 ? index = 7: index = 6;
+                    break;
+                case 0: //down
+                    if(document.getElementById(mapCharaObjectsMove[i][2]+"_2")!=null && document.getElementById(mapCharaObjectsMove[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
+                    break;
+                default :
+                    // if(document.getElementById(mapCharaObjects[i][2]+"_2")!=null && document.getElementById(mapCharaObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
+                    break;
+            }
         }
 
         if (mapCharaObjectsMove[i][4] != null) {
@@ -983,6 +1026,8 @@ function drawObjectsWithMove() {
             }
             movePxX[i] = 0; //31 ⇨ 0に戻す
             movePxY[i] = 0; //31 ⇨ 0に戻す
+            scrollPosOfObj = 0;
+            sideSwitchFlgOfObj = sideSwitchFlgOfObj ? false : true;
         }
     }
 
@@ -992,6 +1037,9 @@ function drawObjectsWithMove() {
     }
 
     switchCountOfObj++;
+
+    scrollPosOfObj++;
+
     if (switchCountOfObj == 128) switchCountOfObj = 0;
 
     moveCounter++;
@@ -1152,37 +1200,81 @@ function showStartProject() {
 
 //メインキャラクターを表示する
 var switchCountOfMain = 0;
+// 上下の場合の左右切り替えフラグ
+var sideSwitchFlg = true;
 function drawMainCharacter() {
     //歩くアニメーションはここで実装する
     //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
-    switch (scrollDir) {
-        case 'left': 
-            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[9]:mainCharaImg = mainCharaImgArray[8];
+    if (scrollState) {
+        switch (scrollDir) {
+            case 'left': 
+                if (scrollPos <  16) mainCharaImg = mainCharaImgArray[9];
+                if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[8];
             break;
-        case 'up':
-            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[5]:mainCharaImg = mainCharaImgArray[4];
+            case 'up':
+                //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+                if (sideSwitchFlg) {
+                    if (scrollPos <  16) mainCharaImg = mainCharaImgArray[4];
+                    if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[5];   
+                } else {
+                    if (scrollPos <  16) mainCharaImg = mainCharaImgArray[5];
+                    if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[4];   
+                } 
             break;
-        case 'right':
-            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[7]:mainCharaImg = mainCharaImgArray[6];
+            case 'right':
+                if (scrollPos <  16) mainCharaImg = mainCharaImgArray[7];
+                if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[6];
             break;
-        case 'down':
-            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
+            case 'down':
+                //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+                if (sideSwitchFlg) {
+                    if (scrollPos <  16) mainCharaImg = mainCharaImgArray[1];
+                    if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[2];   
+                } else {
+                    if (scrollPos <  16) mainCharaImg = mainCharaImgArray[2];
+                    if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[1];
+                }
             break;
-        default :
-            switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
-         break;
+        }
+        //上下の場合の左右切り替え
+        if (scrollPos >= 31) {
+            sideSwitchFlg = sideSwitchFlg ? false : true;
+            switchCountOfMain = 0;
+        }
+        //メインキャラを描画
+        viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
+
+    } else {
+        switch (scrollDir) {
+            case 'left': 
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[9]:mainCharaImg = mainCharaImgArray[8];
+                break;
+            case 'up':
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[5]:mainCharaImg = mainCharaImgArray[4];
+                break;
+            case 'right':
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[7]:mainCharaImg = mainCharaImgArray[6];
+                break;
+            case 'down':
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
+                break;
+            default :
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
+             break;
+        }
+        //メインキャラを描画
+        viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
+        switchCountOfMain++;
+        if (switchCountOfMain >= 128) switchCountOfMain = 0;
+
     }
-    //メインキャラを描画
-    viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
-    switchCountOfMain++;
-    if (switchCountOfMain == 128) switchCountOfMain = 0;
 
 }
 
-//上下の場合の左右切り替えフラグ
-//var sideSwitchFlg = true;
+// 上下の場合の左右切り替えフラグ
+// var sideSwitchFlg = true;
 
-//メインキャラクターを表示する
+// メインキャラクターを表示する
 // function drawMainCharacter() {
 //     //歩くアニメーションはここで実装する
 //     //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
