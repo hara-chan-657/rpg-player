@@ -244,7 +244,7 @@ function draw() {
 
     //描画フラグがtrueならマップとオブジェクトとメインキャラクターを描画
     if (drawFlg) {
-        drawCanvas() //キャンバスに描画する部分の関数をこの関数にまとめる（単に画面をリセットしたい場合など、この関数を呼べるようにするため）
+        drawCanvas(); //キャンバスに描画する部分の関数をこの関数にまとめる（単に画面をリセットしたい場合など、この関数を呼べるようにするため）
         setTimeout("draw()", drawSpeed); //1000分の5ミリ秒毎に毎回描画を繰り返す
     } else {
         //drawFlgがfalseの場合はdrawの繰り返しを止める。再会するにはtrueを代入し、draw()をコールする。
@@ -879,6 +879,67 @@ function doScene(sceneData) {
 
     //あとはシーンイベントをAボタンで実行していく。
     //なくなったら、次のイベント
+
+}
+
+//主人公を変更する
+function doChangeMainChara(changeMainCharaData) {
+    
+    //最初に現在の主人公のデータを初期化
+    mainCharaImgArray = [];
+
+    var mainCharaArray = [];
+    mainCharaArray = [
+        //三角パンツ
+        '/rpg-player/public/image/mainCharacterDown.png',
+        '/rpg-player/public/image/mainCharacterDown.png',
+        '/rpg-player/public/image/mainCharacterDown.png',
+        '/rpg-player/public/image/mainCharacterUp.png',
+        '/rpg-player/public/image/mainCharacterUp.png',
+        '/rpg-player/public/image/mainCharacterUp.png',
+        '/rpg-player/public/image/mainCharacterRight.png',
+        '/rpg-player/public/image/mainCharacterRight.png',
+        '/rpg-player/public/image/mainCharacterLeft.png',
+        '/rpg-player/public/image/mainCharacterLeft.png',
+    ]
+    for (i=0; i<mainCharaArray.length; i++) {
+        var imgObj = new Image();
+        imgObj.src = mainCharaArray[i];
+        mainCharaImgArray.push(imgObj);
+    }
+    //ここで引数の主人公情報を取得、あれば三角パンツを上書きする
+    //なければ、三角パンツをそのまま使う。
+    if (projectDataObj.hasOwnProperty('mainChara')) {
+            if (document.getElementById(changeMainCharaData['name']+"_0") != null) mainCharaImgArray[0] = document.getElementById(changeMainCharaData['name']+"_0"); //f
+            if (document.getElementById(changeMainCharaData['name']+"_1") != null) mainCharaImgArray[1] = document.getElementById(changeMainCharaData['name']+"_1"); //★ 前1 fr
+            if (document.getElementById(changeMainCharaData['name']+"_2") != null) mainCharaImgArray[2] = document.getElementById(changeMainCharaData['name']+"_2"); //★ 前2 fl
+            if (document.getElementById(changeMainCharaData['name']+"_3") != null) mainCharaImgArray[3] = document.getElementById(changeMainCharaData['name']+"_3"); //b
+            if (document.getElementById(changeMainCharaData['name']+"_4") != null) mainCharaImgArray[4] = document.getElementById(changeMainCharaData['name']+"_4"); //★ 後4 br
+            if (document.getElementById(changeMainCharaData['name']+"_5") != null) mainCharaImgArray[5] = document.getElementById(changeMainCharaData['name']+"_5"); //★ 後5 bl
+            if (document.getElementById(changeMainCharaData['name']+"_6") != null) mainCharaImgArray[6] = document.getElementById(changeMainCharaData['name']+"_6"); //★ 右6 r
+            if (document.getElementById(changeMainCharaData['name']+"_7") != null) mainCharaImgArray[7] = document.getElementById(changeMainCharaData['name']+"_7"); //★ 右7 rr
+            if (document.getElementById(changeMainCharaData['name']+"_8") != null) mainCharaImgArray[8] = document.getElementById(changeMainCharaData['name']+"_8"); //★ 左8 l
+            if (document.getElementById(changeMainCharaData['name']+"_9") != null) mainCharaImgArray[9] = document.getElementById(changeMainCharaData['name']+"_9"); //★ 左9 ll
+
+    }
+    //ロード時は下向きで表示
+    mainCharaImg = mainCharaImgArray[0];
+
+    //一回表示し直さないといけない
+    drawCanvas();
+
+    //次のイベントがあれば次のイベント
+    if (eventIndex+1 != events.length) {
+        eventIndex++;
+        doEvents();
+    } else {
+    //なければ通常通りのdraw()
+        if (!drawFlg) {
+            drawFlg = true;
+            draw();
+        }
+        eventIndex = 0; 
+    }
 
 }
 
@@ -1707,6 +1768,10 @@ function doObjectEvents() {
                     var sceneData =  maptipObj['events'][evtFullName];
                     doScene(sceneData);
                 break;
+                case 'changeMainChara':
+                    var changeMainCharaData =  maptipObj[evtFullName];
+                    doChangeMainChara(changeMainCharaData);
+                break;
             }  
         break;
 
@@ -1797,6 +1862,10 @@ function doEvents() {
         case 'scene':
             var sceneData =  maptipObj[evtFullName];
             doScene(sceneData);
+        break;
+        case 'changeMainChara':
+            var changeMainCharaData =  maptipObj[evtFullName];
+            doChangeMainChara(changeMainCharaData);
         break;
     }
 }
