@@ -1400,8 +1400,16 @@ function showHaveTools(index = -1) { //index：画面に表示する道具のイ
     viewContext.textBaseline = 'top';
     viewContext.font = talkFont;
     var lineSpace = 32;
+
+    //「道具」と表示する
+    viewContext.fillStyle = 'yellow';
+    viewContext.fillRect(200, 10, 100, 40);
+    viewContext.fillStyle = 'black';
+    viewContext.fillText('道具', 200+20, 10+7);
+
+    viewContext.fillStyle = 'black';
     if (haveTools.length == 0) {
-        viewContext.fillText('道具はありません', 200+2+10, (50+2+3)+(0*lineSpace));
+        viewContext.fillText('道具はありません', 200+2+10, (50+2+3)+(0*lineSpace+5));
         return false;
     } else if (index < 0) {
         //最初はcurrrentToolIndexは必ず0で表示    
