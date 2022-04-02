@@ -44,6 +44,10 @@ var currentMapImg;
 var mainCharaImgArray = [];
 //メインキャラ画像;
 var mainCharaImg;
+//フォローキャラ画像配列;
+var followCharaImgArray = [];
+//フォローキャラ画像;
+var followCharaImg;
 //メインキャラ現在位置X
 var mainCharaPosX;
 //メインキャラ現在位置Y
@@ -258,7 +262,7 @@ function drawCanvas() {
     drawMapRepeat(); //繰り返しマップの描画
     drawTurnChip(); //マップ交互の描画
     drawMoveObjFlg ? drawObjectsWithMove() : drawObjects();//オブジェクトの描画（キャラクター/ツール）
-    drawMainCharacter(); //メインキャラの描画
+    drawMainCharacterAndFollowCharacter(); //メインキャラとフォローキャラの描画
 }
 
 function keyUpHandler(evt) {
@@ -1247,7 +1251,7 @@ function doChangeMainChara(changeMainCharaData) {
         '/rpg-player/public/image/mainCharacterLeft.png',
         '/rpg-player/public/image/mainCharacterLeft.png',
     ]
-    for (i=0; i<mainCharaArray.length; i++) {
+    for (var i=0; i<mainCharaArray.length; i++) {
         var imgObj = new Image();
         imgObj.src = mainCharaArray[i];
         mainCharaImgArray.push(imgObj);
@@ -1350,10 +1354,10 @@ function loadImages() {
         '/rpg-player/public/image/mainCharacterLeft.png',
         '/rpg-player/public/image/mainCharacterLeft.png',
     ]
-    for (i=0; i<mainCharaArray.length; i++) {
+    for (var i=0; i<mainCharaArray.length; i++) {
         var imgObj = new Image();
         imgObj.src = mainCharaArray[i];
-        mainCharaImgArray.push(imgObj);
+        mainCharaImgArray.push(imgObj);   //メインキャラ
     }
     //ここでprojectData.jsonの、mainCharaプロパティを取得、あれば三角パンツを上書きする
     //なければ、三角パンツをそのまま使う。
@@ -1373,7 +1377,6 @@ function loadImages() {
     //ロード時は下向きで表示
     mainCharaImg = mainCharaImgArray[0];
 
-
     //リアクション表示用画像
     reactionArray = [
         '/rpg-player/public/image/bikkuri.png',
@@ -1381,7 +1384,7 @@ function loadImages() {
         '/rpg-player/public/image/ikari.png',
         '/rpg-player/public/image/ase.png',
     ]
-    for (i=0; i<reactionArray.length; i++) {
+    for (var i=0; i<reactionArray.length; i++) {
         var imgObj = new Image();
         imgObj.src = reactionArray[i];
         reactionImgArray.push(imgObj);
@@ -1412,66 +1415,248 @@ function showStartProject() {
 var switchCountOfMain = 0;
 // 上下の場合の左右切り替えフラグ
 var sideSwitchFlg = true;
-function drawMainCharacter() {
+// フォローキャラが次に進む方向
+var tmpScrollDir = '';
+var nextFollowDir = '';
+// フォローキャラが進んだ距離
+function drawMainCharacterAndFollowCharacter() {
     //歩くアニメーションはここで実装する
     //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
     if (scrollState) {
+    //移動中の時
+        if (scrollPos == 1) {
+        //一歩進んだ時、進んだ方向をフォローキャラが次に進む方向として取得（フォローして２歩目以降）
+            if (!followFirstStep) {
+                nextFollowDir = tmpScrollDir;
+            }
+            tmpScrollDir = scrollDir; //1pxでも進んだ時、進んだ方向をフォローキャラが進む方法として取得
+        }
         switch (scrollDir) {
             case 'left': 
-                if (scrollPos <  16) mainCharaImg = mainCharaImgArray[9];
-                if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[8];
+                if (scrollPos <  16) {
+                    mainCharaImg = mainCharaImgArray[9];
+                    followCharaImg = followCharaImgArray[9];
+                }
+                if (scrollPos >= 16) {
+                    mainCharaImg = mainCharaImgArray[8];
+                    followCharaImg = followCharaImgArray[8];
+                }
             break;
             case 'up':
                 //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
                 if (sideSwitchFlg) {
-                    if (scrollPos <  16) mainCharaImg = mainCharaImgArray[4];
-                    if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[5];   
+                    if (scrollPos <  16) {
+                        mainCharaImg = mainCharaImgArray[4];
+                        followCharaImg = followCharaImgArray[4];
+                    }
+                    if (scrollPos >= 16) {
+                        mainCharaImg = mainCharaImgArray[5];
+                        followCharaImg = followCharaImgArray[5];
+                    }
                 } else {
-                    if (scrollPos <  16) mainCharaImg = mainCharaImgArray[5];
-                    if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[4];   
+                    if (scrollPos <  16) {
+                        mainCharaImg = mainCharaImgArray[5];
+                        followCharaImg = followCharaImgArray[5];
+                    }
+                    if (scrollPos >= 16) {
+                        mainCharaImg = mainCharaImgArray[4];
+                        followCharaImg = followCharaImgArray[4];
+                    }
                 } 
             break;
             case 'right':
-                if (scrollPos <  16) mainCharaImg = mainCharaImgArray[7];
-                if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[6];
+                if (scrollPos <  16) {
+                    mainCharaImg = mainCharaImgArray[7];
+                    followCharaImg = followCharaImgArray[7];
+                }
+                if (scrollPos >= 16) {
+                    mainCharaImg = mainCharaImgArray[6];
+                    followCharaImg = followCharaImgArray[6];
+                }
             break;
             case 'down':
                 //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
                 if (sideSwitchFlg) {
-                    if (scrollPos <  16) mainCharaImg = mainCharaImgArray[1];
-                    if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[2];   
+                    if (scrollPos <  16) {
+                        mainCharaImg = mainCharaImgArray[1];
+                        followCharaImg = followCharaImgArray[1];
+                    }
+                    if (scrollPos >= 16) {
+                        mainCharaImg = mainCharaImgArray[2];
+                        followCharaImg = followCharaImgArray[2];
+                    }
                 } else {
-                    if (scrollPos <  16) mainCharaImg = mainCharaImgArray[2];
-                    if (scrollPos >= 16) mainCharaImg = mainCharaImgArray[1];
+                    if (scrollPos <  16) {
+                        mainCharaImg = mainCharaImgArray[2];
+                        followCharaImg = followCharaImgArray[2];
+                    }
+                    if (scrollPos >= 16) {
+                        mainCharaImg = mainCharaImgArray[1];
+                        followCharaImg = followCharaImgArray[1];
+                    }
                 }
             break;
+        }
+        if (!followFirstStep) { //2歩目移行の時
+            switch (nextFollowDir) {
+                case 'left': 
+                    if (scrollPos <  16) {
+                        followCharaImg = followCharaImgArray[9];
+                    }
+                    if (scrollPos >= 16) {
+                        followCharaImg = followCharaImgArray[8];
+                    }
+                break;
+                case 'up':
+                    //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+                    if (sideSwitchFlg) {
+                        if (scrollPos <  16) {
+                            followCharaImg = followCharaImgArray[4];
+                        }
+                        if (scrollPos >= 16) {
+                            followCharaImg = followCharaImgArray[5];
+                        }
+                    } else {
+                        if (scrollPos <  16) {
+                            followCharaImg = followCharaImgArray[5];
+                        }
+                        if (scrollPos >= 16) {
+                            followCharaImg = followCharaImgArray[4];
+                        }
+                    } 
+                break;
+                case 'right':
+                    if (scrollPos <  16) {
+                        followCharaImg = followCharaImgArray[7];
+                    }
+                    if (scrollPos >= 16) {
+                        followCharaImg = followCharaImgArray[6];
+                    }
+                break;
+                case 'down':
+                    //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
+                    if (sideSwitchFlg) {
+                        if (scrollPos <  16) {
+                            followCharaImg = followCharaImgArray[1];
+                        }
+                        if (scrollPos >= 16) {
+                            followCharaImg = followCharaImgArray[2];
+                        }
+                    } else {
+                        if (scrollPos <  16) {
+                            followCharaImg = followCharaImgArray[2];
+                        }
+                        if (scrollPos >= 16) {
+                            followCharaImg = followCharaImgArray[1];
+                        }
+                    }
+                break;
+            }        
         }
         //上下の場合の左右切り替え
         if (scrollPos >= 31) {
             sideSwitchFlg = sideSwitchFlg ? false : true;
             switchCountOfMain = 0;
+            //一歩歩いたらフォローキャラの一歩目フラグをfalseにする
+            if (followFlg && countFirstStep) {
+                countFirstStep = false;
+                followFirstStep = false;
+            }
+        }
+        if (followFlg) {
+            //フォローキャラを描画
+            if (followFirstStep) {
+                //一歩めの間。フォローキャラは動かない（メインキャラの移動からずれ込んでいく感じ）
+                switch (scrollDir) {
+                    case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight); break;
+                    case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+scrollPos); break;
+                    case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight); break; 
+                    case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-scrollPos); break;
+                }
+            } else {
+                //一歩うごいたあと。メインキャラの後ろに描画
+                //斜めって描画していく必要がある
+                switch (nextFollowDir) {  //nextFollowDir
+                    case 'left':
+                        switch(scrollDir) {
+                            case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight); break;
+                            case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight+scrollPos); break;
+                            case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight); break;
+                            case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight-scrollPos); break;
+                        }
+                    break;
+                    case 'up':
+                        switch(scrollDir) {
+                            case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight+32-scrollPos); break;
+                            case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32); break;
+                            case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight+32-scrollPos); break;
+                            case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                        }
+                    break;
+                    case 'right':
+                        switch(scrollDir) {
+                            case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight); break;
+                            case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+scrollPos,viewCanvasHalfHeight+scrollPos); break;
+                            case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight); break;
+                            case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+scrollPos,viewCanvasHalfHeight-scrollPos); break;
+                        }
+                    break;
+                    case 'down':
+                        switch(scrollDir) {
+                            case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight-32+scrollPos); break;
+                            case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32+(scrollPos*2));  break;
+                            case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight-32+scrollPos); break;
+                            case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32); break;
+                        }
+                    break;
+                }
+            }
         }
         //メインキャラを描画
         viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
 
     } else {
+    //移動中じゃない時
         switch (scrollDir) {
             case 'left': 
                 switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[9]:mainCharaImg = mainCharaImgArray[8];
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[9]:followCharaImg = followCharaImgArray[8];
                 break;
             case 'up':
                 switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[5]:mainCharaImg = mainCharaImgArray[4];
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[5]:followCharaImg = followCharaImgArray[4];
                 break;
             case 'right':
                 switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[7]:mainCharaImg = mainCharaImgArray[6];
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[7]:followCharaImg = followCharaImgArray[6];
                 break;
             case 'down':
                 switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1];
                 break;
             default :
                 switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1];
              break;
         }
+
+        if (followFlg && !followFirstStep) {
+            switch (scrollDir) {  //mainPrevPos
+                case 'left':
+                    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight);
+                break;
+                case 'up':
+                    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32);
+                break;
+                case 'right':
+                    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight);
+                break;
+                case 'down':
+                    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32);
+                break;
+            }
+        }
+
         //メインキャラを描画
         viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
         switchCountOfMain++;
@@ -1926,8 +2111,12 @@ function doObjectEvents() {
                     doScene(sceneData);
                 break;
                 case 'changeMainChara':
-                    var changeMainCharaData =  maptipObj[evtFullName];
+                    var changeMainCharaData =  maptipObj['events'][evtFullName];
                     doChangeMainChara(changeMainCharaData);
+                break;
+                case 'follow':
+                    var followData =  maptipObj['events'][evtFullName];
+                    doFollow(followData);
                 break;
             }  
         break;
@@ -2023,6 +2212,10 @@ function doEvents() {
         case 'changeMainChara':
             var changeMainCharaData =  maptipObj[evtFullName];
             doChangeMainChara(changeMainCharaData);
+        break;
+        case 'follow':
+            var followData =  maptipObj[evtFullName];
+            doFollow(followData);
         break;
     }
 }
@@ -2243,6 +2436,11 @@ function showBattleScreen(battleData) {
 //画面遷移
 function doTransition(trasitionDataObj) {
 
+    //フォローキャラの追跡をリセット
+    followFirstStep = true;
+    countFirstStep = true;
+
+
     // const sec = 3;
 
     // const wait = (sec) => {
@@ -2269,16 +2467,16 @@ function doTransition(trasitionDataObj) {
     // var imgObj = new Image();
     // imgObj.src = '/rpg-player/public/image/test.gif';
 
-    viewContext.drawImage(imgObj,0,0);
+    // viewContext.drawImage(imgObj,0,0);
 
     //0.7秒スリープさせる
-    const d1 = new Date();
-    while (true) {
-        const d2 = new Date();
-        if (d2 - d1 > 4200) {
-            break;
-        }
-    }
+    // const d1 = new Date();
+    // while (true) {
+    //     const d2 = new Date();
+    //     if (d2 - d1 > 4200) {
+    //         break;
+    //     }
+    // }
 
     viewContext.globalAlpha = 1;
 
@@ -2528,6 +2726,67 @@ function showBattleOptions() {
     //targetBattleOption = targetBattleOptionIndex; //1：はい、2：いいえ
     viewContext.fillStyle = 'black';
     viewContext.fillText('▶︎', questionWinStartX-30, talkWinStartY+10+(targetBattleOption*mapTipLength));   
+}
+
+var followFlg = false;
+var followFirstStep = true; //最初の一歩だけ動かないフラグ
+var countFirstStep = true; //一歩進んだら、followFirstStepをfalseにするフラグ
+function doFollow(followData) {
+
+    if (followData.type == 'add') {
+        var followCharaArray = [];
+        followCharaArray = [
+            //三角パンツ
+            '/rpg-player/public/image/mainCharacterDown.png',
+            '/rpg-player/public/image/mainCharacterDown.png',
+            '/rpg-player/public/image/mainCharacterDown.png',
+            '/rpg-player/public/image/mainCharacterUp.png',
+            '/rpg-player/public/image/mainCharacterUp.png',
+            '/rpg-player/public/image/mainCharacterUp.png',
+            '/rpg-player/public/image/mainCharacterRight.png',
+            '/rpg-player/public/image/mainCharacterRight.png',
+            '/rpg-player/public/image/mainCharacterLeft.png',
+            '/rpg-player/public/image/mainCharacterLeft.png',
+        ];
+        for (var i=0; i<followCharaArray.length; i++) {
+            var imgObj = new Image();
+            imgObj.src = followCharaArray[i];
+            followCharaImgArray.push(imgObj);
+        }
+
+        //三角パンツを上書きする
+        //なければ、三角パンツをそのまま使う。
+        if (document.getElementById(followData.name+"_0") != null) followCharaImgArray[0] = document.getElementById(followData.name+"_0"); //f
+        if (document.getElementById(followData.name+"_1") != null) followCharaImgArray[1] = document.getElementById(followData.name+"_1"); //★ 前1 fr
+        if (document.getElementById(followData.name+"_2") != null) followCharaImgArray[2] = document.getElementById(followData.name+"_2"); //★ 前2 fl
+        if (document.getElementById(followData.name+"_3") != null) followCharaImgArray[3] = document.getElementById(followData.name+"_3"); //b
+        if (document.getElementById(followData.name+"_4") != null) followCharaImgArray[4] = document.getElementById(followData.name+"_4"); //★ 後ろ4 br
+        if (document.getElementById(followData.name+"_5") != null) followCharaImgArray[5] = document.getElementById(followData.name+"_5"); //★ 後ろ5 bl
+        if (document.getElementById(followData.name+"_6") != null) followCharaImgArray[6] = document.getElementById(followData.name+"_6");   //★ 右6 r
+        if (document.getElementById(followData.name+"_7") != null) followCharaImgArray[7] = document.getElementById(followData.name+"_7"); //★ 右7 rr
+        if (document.getElementById(followData.name+"_8") != null) followCharaImgArray[8] = document.getElementById(followData.name+"_8");   //★ 左8 l
+        if (document.getElementById(followData.name+"_9") != null) followCharaImgArray[9] = document.getElementById(followData.name+"_9"); //★ 左9 ll
+
+        followFlg = true;
+    } else {
+
+        followFlg = false;
+        followFirstStep = true;
+        countFirstStep = true;
+
+    }
+
+    if (eventIndex+1 != events.length) {
+        eventIndex++;
+        if(doingEvtType == 'map') {
+            doEvents();
+        } else {
+            doObjectEvents();
+        }
+    } else {
+        eventIndex = 0;
+    }
+
 }
 
 //会話内容表示メソッド
