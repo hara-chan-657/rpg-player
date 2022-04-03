@@ -244,6 +244,24 @@ function draw() {
 
     }
 
+    // オブジェクト削除が終わったら
+    if (delObjdrawCnt == 150) { //150は割と適当な数字（点滅の期間）
+        delObjdrawCnt = 0;
+        delete currrentMapObj[Number(mapObjects[delObjIndex][1])][Number(mapObjects[delObjIndex][0])]['object'];
+        mapObjects.splice(delObjIndex,1);
+        delObjIndex = null;
+
+        if (eventIndex+1 != events.length) {
+            eventIndex++;
+            doEvents();
+        } else {
+        //なければ通常通りのdraw()
+            // drawFlg = true;
+            eventIndex = 0; 
+        }
+
+    }
+
     //描画フラグがtrueならマップとオブジェクトとメインキャラクターを描画
     if (drawFlg) {
         drawCanvas(); //キャンバスに描画する部分の関数をこの関数にまとめる（単に画面をリセットしたい場合など、この関数を呼べるようにするため）
@@ -681,6 +699,7 @@ function drawTurnChip() {
 
 //オブジェクトを描画する
 var switchCountOfObj = 0;
+var delObjdrawCnt = 0;
 function drawObjects() {
     //歩くアニメーションはここで実装する
     //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
@@ -725,7 +744,14 @@ function drawObjects() {
             var tmp = Math.random();
             if (switchCountOfObj == 127 && tmp < 0.4) mapObjects[i][3] = Math.floor(tmp*10);
 
-            viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+index), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+            if (i != delObjIndex) {
+                //普通に描画する
+                viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+index), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+            } else {
+                //オブジェクト削除。点滅で描画する
+                if (Math.floor(switchCountOfObj/10)%2 == 0)viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+index), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+                delObjdrawCnt++;
+            }
 
         } else {
         //ツールオブジェクト
@@ -2118,6 +2144,10 @@ function doObjectEvents() {
                     var followData =  maptipObj['events'][evtFullName];
                     doFollow(followData);
                 break;
+                case 'deleteObject':
+                    var delObjData =  maptipObj['events'][evtFullName];
+                    doDeleteObject(delObjData);
+                break;
             }  
         break;
 
@@ -2216,6 +2246,10 @@ function doEvents() {
         case 'follow':
             var followData =  maptipObj[evtFullName];
             doFollow(followData);
+        break;
+        case 'deleteObject':
+            var delObjData =  maptipObj[evtFullName];
+            doDeleteObject(delObjData);
         break;
     }
 }
@@ -2785,6 +2819,45 @@ function doFollow(followData) {
         }
     } else {
         eventIndex = 0;
+    }
+
+}
+
+
+//オブジェクトを削除する
+var delObjIndex = null;
+function doDeleteObject(delObjData) {
+    //delObjDataのXとYの位置からオブジェクトを削除する
+　　　//指定の位置にオブジェクトがなかった場合、エラー
+　　　//指定の位置のオブジェクトの当オブジェクトイベントだった場合もその後のイベントは全部やり切る
+　　　//アニメーションが終わってから次のイベントを発動させる
+　　　//次のイベント発動はmove同様、draw()の方で行う
+
+    //まずはチェック
+    if (!currrentMapObj[Number(delObjData.delY)][Number(delObjData.delX)].hasOwnProperty('object')){
+        alert("削除オブジェクトがありません[マップ]（"+delObjData.delX+":"+delObjData.delY+")");
+    }
+    var exsist = false;
+    for(var i=0; i<mapObjects.length; i++) {
+        if (mapObjects[i][0] == delObjData.delX) {
+            if (mapObjects[i][1] == delObjData.delY) {
+                exsist = true;
+            }   
+        }
+    }
+    if (!exsist){
+        alert("削除オブジェクトがありません[オブジェクト配列]（"+delObjData.delX+":"+delObjData.delY+")");
+    }
+
+    //チェックOKなら、削除対象のオブジェクトのmapObjectsのインデックスを取得
+    //→描画後、削除するのに使う
+    delete currrentMapObj[Number(delObjData.delX)][Number(delObjData.delY)]['object'];
+    for(var i=0; i<mapObjects.length; i++) {
+        if (mapObjects[i][0] == delObjData.delX) {
+            if (mapObjects[i][1] == delObjData.delY) {
+                delObjIndex = i;
+            }   
+        }
     }
 
 }
