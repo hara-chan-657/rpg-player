@@ -650,7 +650,7 @@ function playBgm(type) {
 //海のような、繰り返して動いているマップチップを描画する
 //マップチップタイプ6（マップ繰り返し）のマップチップを繰り返し描画する
 //マップイメージから、該当の座標部分のみ描画する。
-var shiftX = 0;                     //横に動くpx
+var shiftXY = 0;                     //横に動くpx
 var shiftCountMax = mapTipLength;   //横に動くpxのMax。まあ１マップ分なので、マップチップレングスでもいいんだけど。
 var doing = 0;                      //doNumと合わせて使用する。duNumは横流しの早さを決める数字。小さくすると、速くなる。
 var doNum = 30;                     //横流しの早さを決める。
@@ -659,12 +659,108 @@ function drawMapRepeat() {
         //イメージの繰り返ししたい時はこれ（横流し）テストコード
         //viewContext.drawImage(dummy, 0+shiftX, 0, 32-shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + (32*aryX[i]),        viewCanvasHalfHeight-mainCharaPosY + (32*aryY[i]), 32-shiftX, 32);//なんか最後の引数dxがよくわからんけどできた
         //viewContext.drawImage(dummy, 0,        0, shiftX,    32, viewCanvasHalfWidth-mainCharaPosX + (32*aryX[i]+mapTipLength)-shiftX, viewCanvasHalfHeight-mainCharaPosY + (32*aryY[i]), shiftX,    32);   //なんか最後の引数dxがよくわからんけどできた
-        viewContext.drawImage(currentMapImg, mapRepeat[i][0]*mapTipLength+shiftX, mapRepeat[i][1]*mapTipLength, 32-shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength),                     viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), 32-shiftX, 32);//なんか最後の引数dxがよくわからんけどできた
-        viewContext.drawImage(currentMapImg, mapRepeat[i][0]*mapTipLength,        mapRepeat[i][1]*mapTipLength, shiftX,    32, viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength+mapTipLength)-shiftX, viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), shiftX,    32);   //なんか最後の引数dxがよくわからんけどできた
+        switch(mapRepeat[i][2]) {
+            case 6: //left
+                viewContext.drawImage(
+                    currentMapImg, //image
+                    mapRepeat[i][0]*mapTipLength+shiftXY, //sx
+                    mapRepeat[i][1]*mapTipLength, //sy
+                    32-shiftXY, //sw
+                    32, //sh
+                    viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength), //dx
+                    viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), //dy
+                    32-shiftXY, //dw
+                    32 //dh
+                );//なんか最後の引数dxがよくわからんけどできた
+                viewContext.drawImage(
+                    currentMapImg, //image
+                    mapRepeat[i][0]*mapTipLength, //sx
+                    mapRepeat[i][1]*mapTipLength, //sy
+                    shiftXY, //sd
+                    32, //sh
+                    viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength+mapTipLength)-shiftXY, //dx
+                    viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), //dy
+                    shiftXY, //dw
+                    32 //dh
+                );//なんか最後の引数dxがよくわからんけどできた
+            break;
+            case 10: //right
+                viewContext.drawImage(
+                    currentMapImg, //image
+                    mapRepeat[i][0]*mapTipLength+mapTipLength-shiftXY, //sx
+                    mapRepeat[i][1]*mapTipLength, //sy
+                    shiftXY, //sw
+                    32, //sh
+                    viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength), //dx
+                    viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), //dy
+                    shiftXY, //dw
+                    32 //dh
+                );//なんか最後の引数dxがよくわからんけどできた
+                viewContext.drawImage(
+                    currentMapImg, //image
+                    mapRepeat[i][0]*mapTipLength, //sx
+                    mapRepeat[i][1]*mapTipLength, //sy
+                    32-shiftXY, //sd
+                    32, //sh
+                    viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength) + shiftXY, //dx
+                    viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), //dy
+                    32-shiftXY, //dw
+                    32 //dh
+                );//なんか最後の引数dxがよくわからんけどできた
+            break;
+            case 11: //up
+                viewContext.drawImage(
+                    currentMapImg, //image
+                    mapRepeat[i][0]*mapTipLength, //sx
+                    mapRepeat[i][1]*mapTipLength+shiftXY, //sy
+                    32, //sw
+                    32-shiftXY, //sh
+                    viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength), //dx
+                    viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), //dy
+                    32, //dw
+                    32-shiftXY //dh
+                );//なんか最後の引数dxがよくわからんけどできた
+                viewContext.drawImage(
+                    currentMapImg, //image
+                    mapRepeat[i][0]*mapTipLength, //sx
+                    mapRepeat[i][1]*mapTipLength, //sy
+                    32, //sd
+                    shiftXY, //sh
+                    viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength), //dx
+                    viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength+mapTipLength)-shiftXY, //dy
+                    32, //dw
+                    shiftXY //dh
+                );//なんか最後の引数dxがよくわからんけどできた
+            break;
+            case 12: //down
+                viewContext.drawImage(
+                    currentMapImg, //image
+                    mapRepeat[i][0]*mapTipLength, //sx
+                    mapRepeat[i][1]*mapTipLength+mapTipLength-shiftXY, //sy
+                    32, //sw
+                    shiftXY, //sh
+                    viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength), //dx
+                    viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength), //dy
+                    32, //dw
+                    shiftXY //dh
+                );//なんか最後の引数dxがよくわからんけどできた
+                viewContext.drawImage(
+                    currentMapImg, //image
+                    mapRepeat[i][0]*mapTipLength, //sx
+                    mapRepeat[i][1]*mapTipLength, //sy
+                    32, //sd
+                    32-shiftXY, //sh
+                    viewCanvasHalfWidth-mainCharaPosX + (mapRepeat[i][0]*mapTipLength), //dx
+                    viewCanvasHalfHeight-mainCharaPosY + (mapRepeat[i][1]*mapTipLength) + shiftXY, //dy
+                    32, //dw
+                    32-shiftXY //dh
+                );//なんか最後の引数dxがよくわからんけどできた
+            break;
+        }
         if (doing == doNum) {
-            shiftX++;
-            if (shiftX == shiftCountMax) {
-                shiftX = 0;
+            shiftXY++;
+            if (shiftXY == shiftCountMax) {
+                shiftXY = 0;
             }
             doing = 0;
         }
@@ -2587,10 +2683,20 @@ function loadSpecialMapChips() {
         for(let l in currrentMapObj[k]) {
             //繰り返しマップチップ
             if (currrentMapObj[k][l]['maptipType'] == 6) {
-                var aryXY = [l, k];
-                mapRepeat.push(aryXY);
-            }
+                var aryXYD = [l, k, 6];
+                mapRepeat.push(aryXYD);
+            } else if (currrentMapObj[k][l]['maptipType'] == 10) {
+                var aryXYD = [l, k, 10];
+                mapRepeat.push(aryXYD);
+            } else if (currrentMapObj[k][l]['maptipType'] == 11) {
+                var aryXYD = [l, k, 11];
+                mapRepeat.push(aryXYD);
+            } else if (currrentMapObj[k][l]['maptipType'] == 12) {
+                var aryXYD = [l, k, 12];
+                mapRepeat.push(aryXYD);
+            } else {
 
+            }
             //交互マップチップ
             if (currrentMapObj[k][l].hasOwnProperty('turnChip') || currrentMapObj[k][l].hasOwnProperty('turnChipPass')) {
                 var obj;
