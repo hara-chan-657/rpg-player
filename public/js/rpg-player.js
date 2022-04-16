@@ -1740,42 +1740,26 @@ function drawMainCharacterAndFollowCharacter() {
     } else {
     //移動中じゃない時
         switch (scrollDir) {
-            case 'left': 
-                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[9]:mainCharaImg = mainCharaImgArray[8];
-                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[9]:followCharaImg = followCharaImgArray[8];
-                break;
-            case 'up':
-                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[5]:mainCharaImg = mainCharaImgArray[4];
-                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[5]:followCharaImg = followCharaImgArray[4];
-                break;
-            case 'right':
-                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[7]:mainCharaImg = mainCharaImgArray[6];
-                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[7]:followCharaImg = followCharaImgArray[6];
-                break;
-            case 'down':
-                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
-                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1];
-                break;
-            default :
-                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
-                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1];
-             break;
+            case 'left': switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[9]:mainCharaImg = mainCharaImgArray[8]; break;
+            case 'up':   switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[5]:mainCharaImg = mainCharaImgArray[4]; break;
+            case 'right':switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[7]:mainCharaImg = mainCharaImgArray[6]; break;
+            case 'down': switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1]; break;
+            default :    switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1]; break;
+        }
+        switch (tmpScrollDir) {
+            case 'left': switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[9]:followCharaImg = followCharaImgArray[8]; break;
+            case 'up':   switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[5]:followCharaImg = followCharaImgArray[4]; break;
+            case 'right':switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[7]:followCharaImg = followCharaImgArray[6]; break;
+            case 'down': switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1]; break;
+            default :    switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1]; break;
         }
 
         if (followFlg && !followFirstStep) {
-            switch (scrollDir) {  //mainPrevPos
-                case 'left':
-                    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight);
-                break;
-                case 'up':
-                    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32);
-                break;
-                case 'right':
-                    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight);
-                break;
-                case 'down':
-                    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32);
-                break;
+            switch (tmpScrollDir) {  //mainPrevPos
+                case 'left': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight); break;
+                case 'up':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32); break;
+                case 'right':viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight); break;
+                case 'down': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32); break;
             }
         }
 
