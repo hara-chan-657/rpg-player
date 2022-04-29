@@ -828,7 +828,7 @@ function drawObjects() {
                 case 2: //right
                     if(document.getElementById(mapObjects[i][2]+"_7")!=null && document.getElementById(mapObjects[i][2]+"_6")!=null) switchCountOfObj < 64 ? index = 7: index = 6;
                 break;
-                case 0: //down
+                case 0: //down ★ロード時の初期値はこれ、必ず下向きから始まる（なので下向きは必須の仕様）
                     if(document.getElementById(mapObjects[i][2]+"_2")!=null && document.getElementById(mapObjects[i][2]+"_1")!=null) switchCountOfObj < 64 ? index = 2: index = 1;
                 break;
                 default :
@@ -838,11 +838,18 @@ function drawObjects() {
 
             //ディレクションはランダムで定期的に変える
             var tmp = Math.random();
-            if (switchCountOfObj == 127 && tmp < 0.4) mapObjects[i][3] = Math.floor(tmp*10);
+            if (switchCountOfObj == 127 && tmp < 0.4) mapObjects[i][3] = Math.floor(tmp*10); //01234：上下左右をランダムで格納
 
             if (i != delObjIndex) {
                 //普通に描画する
-                viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+index), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+                if (document.getElementById(mapObjects[i][2]+"_"+index) != null) {
+                    //ディレクションの画像がある場合
+                    viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+index), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+                } else {
+                    //ディレクションの画像がない場合、下向きを描画する（必須のディレクション）
+                    var tmp = switchCountOfObj < 64 ? 2 : 1;
+                    viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+tmp), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+                }
             } else {
                 //オブジェクト削除。点滅で描画する
                 if (Math.floor(switchCountOfObj/10)%2 == 0)viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+index), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
