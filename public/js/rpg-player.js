@@ -852,7 +852,14 @@ function drawObjects() {
                 }
             } else {
                 //オブジェクト削除。点滅で描画する
-                if (Math.floor(switchCountOfObj/10)%2 == 0)viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+index), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+                if (Math.floor(switchCountOfObj/10)%2 == 0) {
+                    if (document.getElementById(mapObjects[i][2]+"_"+index) != null) {
+                        viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+index), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+                    } else {
+                        var tmp = switchCountOfObj < 64 ? 2 : 1;
+                        viewContext.drawImage(document.getElementById(mapObjects[i][2]+"_"+tmp), (mapObjects[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX), (mapObjects[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY));
+                    }
+                }
                 delObjdrawCnt++;
             }
 
