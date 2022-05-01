@@ -244,10 +244,19 @@ function draw() {
 
     }
 
-    // オブジェクト削除が終わったら
+    // 点滅が終わったらオブジェクト削除
     if (delObjdrawCnt == 150) { //150は割と適当な数字（点滅の期間）
         delObjdrawCnt = 0;
-        delete currrentMapObj[Number(mapObjects[delObjIndex][1])][Number(mapObjects[delObjIndex][0])]['object'];
+        //マップデータから削除
+        var ylength = currrentMapObj[Number(mapObjects[delObjIndex][1])][Number(mapObjects[delObjIndex][0])]['object']['yCells'];
+        var xlength = currrentMapObj[Number(mapObjects[delObjIndex][1])][Number(mapObjects[delObjIndex][0])]['object']['xCells'];
+        for(var i=0; i<ylength; i++){
+            for(var j=0; j<xlength; j++){
+                delete currrentMapObj[Number(mapObjects[delObjIndex][1])+Number(i)][Number(mapObjects[delObjIndex][0]+Number(j))]['object'];
+            }
+        }
+
+        //オブジェクトデータから削除
         mapObjects.splice(delObjIndex,1);
         delObjIndex = null;
 
@@ -1062,7 +1071,14 @@ function doMove(moveData) {
                 fixDir = targetChips[j][5]; //固定向き
                 objName = mapObjects[i][9] //オブジェクトタイプ
                 //オブジェクト情報はこの時点で削除する
-                delete currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object'];
+                //データ範囲分実施
+                var ylength = currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object']['yCells'];
+                var xlength = currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object']['xCells'];
+                for(var k=0; k<ylength; k++){
+                    for(var l=0; l<xlength; l++){
+                        delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object'];
+                    }
+                }
                 break;
             }
         }
@@ -1310,13 +1326,35 @@ function drawObjectsWithMove() {
     if (maxOrderNUm == orderIndex) {
         //mapObjectsMove
         for (var i=0; i<mapObjectsMove.length; i++) {
-            //事前に保持しておいたオブジェクト情報[6]をマップに移行（ダメならここでアラートを出す。）
-            // mapObjectsMoveのインデックス6（待避用オブジェクト）が空でないとき（つまり、既存のオブジェクトを動かした場合） && 　mapObjectsMoveの終着点にオブジェクトがある場合はエラー
-            if (mapObjectsMove[i][6] != null && currrentMapObj[mapObjectsMove[i][1]][mapObjectsMove[i][0]].hasOwnProperty('object')) { 
-                alert("移動先にオブジェクトがあるんでダメでーす");
-            } else {
-            //既存のオブジェクトを動かした場合で、移動先にオブジェクトが存在しなければ置いてもよし。
-                currrentMapObj[mapObjectsMove[i][1]][mapObjectsMove[i][0]]['object'] = mapObjectsMove[i][6];
+            //事前に保持しておいた移動対象チップのオブジェクト情報[6]があればマップに移行（ダメならここでアラートを出す。）
+            if (mapObjectsMove[i][6] != null) { 
+            // mapObjectsMove[i][6]（待避用オブジェクト）が空でないとき（つまり、既存のオブジェクトを動かした場合）待避用データコピー
+            //データ範囲分実施
+                var ylength = mapObjectsMove[i][6]['yCells'];
+                var xlength = mapObjectsMove[i][6]['xCells'];
+                delete mapObjectsMove[i][6]['leftTop'];
+                delete mapObjectsMove[i][6]['yCells'];
+                delete mapObjectsMove[i][6]['xCells'];
+                for(var k=0; k<ylength; k++){
+                    for(var l=0; l<xlength; l++){
+
+                        //移動先範囲にオブジェクトがある場合、アラートを出す
+                        if (currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)].hasOwnProperty('object')) {
+                            alert("移動先にオブジェクトがあるんでダメでーす（処理は止めません）");
+                        }
+
+                        if (k==0 && l==0) {
+                        //左上は、左上フラグとかの情報を追加する
+                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object'] = mapObjectsMove[i][6];
+                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object']['leftTop'] = true;
+                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object']['xCells'] = xlength;
+                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object']['yCells'] = ylength;
+                        } else {
+                        //それ以外の範囲は単純にデータコピー
+                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object'] = mapObjectsMove[i][6];
+                        }
+                    }
+                }
             }
         }
 
@@ -2568,7 +2606,6 @@ function doTransition(trasitionDataObj) {
     followFirstStep = true;
     countFirstStep = true;
 
-
     // const sec = 3;
 
     // const wait = (sec) => {
@@ -2607,6 +2644,24 @@ function doTransition(trasitionDataObj) {
     // }
 
     viewContext.globalAlpha = 1;
+
+    //マップ変更前にオブジェクトデータをリセット
+    for (var i=0; i<mapObjects.length; i++) {
+        //データ範囲分実施
+        var ylength = currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object']['yCells'];
+        var xlength = currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object']['xCells'];
+        for(var k=0; k<ylength; k++){
+            for(var l=0; l<xlength; l++){
+                if (k==0 && l==0) {
+                    delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object']['leftTop'];
+                    delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object']['yCells'];
+                    delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object']['xCells'];
+                } else {
+                    delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object'];
+                }
+            }
+        }
+    }
 
     //現在マップをクリア
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
@@ -2676,6 +2731,8 @@ function loadSpecialMapChips() {
     mapRepeat = [];
     mapTurn = [];
     mapObjects = [];
+    dataCopyAry = [];
+    copyIndex = 0;
     for(let k in currrentMapObj) {
         //console.log(currrentMapObj[k]);
         for(let l in currrentMapObj[k]) {
@@ -2717,6 +2774,30 @@ function loadSpecialMapChips() {
                         // x y キャラネーム ディレクション（0123:上下左右) ムーブフラグ デリートフラグ マップオブジェクト格納用 スライドフラグ 固定向き オブジェクトネーム
                         var defaultObjData = [Number(l), Number(k), currrentMapObj[k][l]['object']['charaName'], 0, null, false, null, false, '', 'character']; 
                         mapObjects.push(defaultObjData);
+
+                        //キャラオブジェクトの場合、大きさの範囲分マップへデータコピーする
+                        var imgEle = document.getElementById(currrentMapObj[k][l]['object']['charaName']+"_1");
+                        var xCells = imgEle.naturalWidth/mapTipLength;
+                        var yCells = imgEle.naturalHeight/mapTipLength;
+                        var objData = currrentMapObj[k][l]['object'];
+                        for(var x=0; x<xCells; x++) {
+                            for(var y=0; y<yCells; y++) {
+                                //左上のセルだった場合左上フラグ、範囲を設定
+                                if (x==0 && y==0) {
+                                    currrentMapObj[k][l]['object']['leftTop'] = true;
+                                    currrentMapObj[k][l]['object']['xCells'] = xCells;
+                                    currrentMapObj[k][l]['object']['yCells'] = yCells;
+                                } else {
+                                //それ以外の範囲はデータコピー
+                                    var ky = Number(k)+y;
+                                    var lx = Number(l)+x;
+                                    //[ky.toString()][lx.toString()]['object'] = objData;
+                                    dataCopyAry[copyIndex] = [ky.toString(), lx.toString(), objData];
+                                    copyIndex++;
+                                }
+                            }
+                        }
+
                     break;
                     case 'tool' :
                         //var aryXYO = [l, k, currrentMapObj[k][l]['object']['imgName']];
@@ -2730,6 +2811,12 @@ function loadSpecialMapChips() {
         }
     }
     doing = 0; //初期化。重要。
+
+    //データコピー
+    for (var i=0; i<dataCopyAry.length; i++) {
+        currrentMapObj[dataCopyAry[i][0]][dataCopyAry[i][1]]['object'] = dataCopyAry[i][2];
+    }
+
 }
 
 // param1 : 会話内容
@@ -2940,6 +3027,11 @@ function doDeleteObject(delObjData) {
     //まずはチェック
     if (!currrentMapObj[Number(delObjData.delY)][Number(delObjData.delX)].hasOwnProperty('object')){
         alert("削除オブジェクトがありません[マップ]（"+delObjData.delX+":"+delObjData.delY+")");
+        return;
+    }
+    if (!currrentMapObj[Number(delObjData.delY)][Number(delObjData.delX)]['object'].hasOwnProperty('leftTop')){
+        alert("左上のチップではありません[マップ]（"+delObjData.delX+":"+delObjData.delY+")");
+        return;
     }
     var exsist = false;
     for(var i=0; i<mapObjects.length; i++) {
@@ -2951,11 +3043,11 @@ function doDeleteObject(delObjData) {
     }
     if (!exsist){
         alert("削除オブジェクトがありません[オブジェクト配列]（"+delObjData.delX+":"+delObjData.delY+")");
+        return;
     }
 
     //チェックOKなら、削除対象のオブジェクトのmapObjectsのインデックスを取得
     //→描画後、削除するのに使う
-    delete currrentMapObj[Number(delObjData.delX)][Number(delObjData.delY)]['object'];
     for(var i=0; i<mapObjects.length; i++) {
         if (mapObjects[i][0] == delObjData.delX) {
             if (mapObjects[i][1] == delObjData.delY) {
