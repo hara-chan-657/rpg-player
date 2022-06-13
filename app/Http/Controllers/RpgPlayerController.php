@@ -103,6 +103,11 @@ class RpgPlayerController extends Controller
         $toolCtlr = new ToolController();
         $tools = $toolCtlr->getTools($request->oldProjectName);
 
+        //スキル取得
+        $skillCtlr = new SkillController();
+        $skills = $skillCtlr->getSkills($request->oldProjectName);
+        $spSkills = $skillCtlr->getSpecialSkills($request->oldProjectName);
+
         //ターンチップ取得
         $excludes = array('.','..','.DS_Store');
         $turnChips = array();
@@ -182,10 +187,12 @@ class RpgPlayerController extends Controller
                         'objCharas'=>$objCharas,
                         'objTools'=>$objTools,
                         'tools'=>$tools,
+                        'skills'=>$skills,
+                        'spSkills'=>$spSkills, //こっちはDBのスキルの方
                         'turnChips'=>$turnChips,
                         'turnPassChips'=>$turnPassChips,
                         'sounds'=>$sounds,
-                        'specialSkills'=>$specialSkills,
+                        'specialSkills'=>$specialSkills, //こっちはイメージの方
                         'scenes'=>$scenes
                     ]
         );

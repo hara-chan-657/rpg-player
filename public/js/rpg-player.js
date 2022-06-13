@@ -112,9 +112,15 @@ var showTriangleFlg = false;
 //バトル中フラグ
 var battleFlg = false;
 //バトルエンドフラグ　バトル中に、バトルを終了するための判断フラグ
-battleEndFlg = false;
-//オプション選択フラグ
+var battleEndFlg = false;
+//バトルオプション選択フラグ
 var selectBattleOptionFlg = false;
+//バトル中フラグ
+var doingBattleFlg = false;
+//バトルオーダーインデックス
+var battleOrderIndex = 0;
+//バトル進行インデックス
+var battleProcedeIndex = 0;
 //対戦オプションインデックス
 var targetBattleOption = 0;
 //対戦オプション
@@ -179,6 +185,16 @@ function setDefault() {
 //マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に5ミリ秒毎に動き続ける。
 var drawSpeed = 5; //描画スピード
 function draw() {
+
+    //トランジションの時はふんわり
+    if (transitionFlg) {
+        viewContext.globalAlpha += 0.03;
+        if (viewContext.globalAlpha > 0.9) {
+            transitionFlg = false;
+            viewContext.globalAlpha = 1;
+        }
+    }
+
     switch (scrollState) {
         //非スクロール中
         case false:
@@ -350,6 +366,21 @@ function keyDownHandler(evt) {
 
         //バトルの時
         } else if (battleFlg) {
+
+            //バトル中でのシーン（特別技）のとき
+            //doTalkに流して以降の処理を行わない
+            if (sceneFlg) {
+                    var talk = sceneEvts[sceneEvtsIndex]['talkContent'];
+                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];
+
+                    //必殺技シーンのセリフ１（キャラのセリフ）
+                    doTalk(talk, wipe);
+
+                    //必殺技シーンのセリフ２用（〇〇を繰り出した！）
+                    //sceneEvtsIndex++;
+                return;
+            }
+
             //バトルオプション選択時
             if (selectBattleOptionFlg) {
                 switch (evt.keyCode) {
@@ -370,7 +401,10 @@ function keyDownHandler(evt) {
                     case 65: //Aボタン
                         switch (targetBattleOption) {
                             case 0: //たたかう
-                                //
+                                selectBattleOptionFlg = false;
+                                //たたかうモードに切り替え
+                                doingBattleFlg = true;
+                                //切り替え後はAボタンで進んでいくのみ
 
                             break;
                             case 1: //逃げる
@@ -389,6 +423,316 @@ function keyDownHandler(evt) {
                         break;
                 }
             }
+
+            if (doingBattleFlg) {
+                //battleOrders[battleOrderIndex]でバトルを進めていく
+                //バトルが終わったら（どっちか全滅or負け判定）で各フラグを戻してバトル終了
+
+                switch(battleOrders[battleOrderIndex]['type']) {
+                    case 'talk':
+                        //トーク表示
+                        if (battleOrders[battleOrderIndex]['wipe'] == "dummy") {
+                            doTalk(battleOrders[battleOrderIndex]['content']);
+                        } else {
+                            doTalk(battleOrders[battleOrderIndex]['content'], battleOrders[battleOrderIndex]['wipe']);
+                        }
+
+                        //battleOrderIndex++するのは、talkの処理の最後で行う
+                        battleOrderIndex++;
+                        //あと画面リセット
+
+                    break;
+                    case 'skill':
+                        //技を実行（適宜Aで進む
+                        switch(battleProcedeIndex) {
+                            //toの画面を開く（fromが1~3なら敵、4~6なら味方画面を開く）
+                            case 0:
+                                if (battleOrders[battleOrderIndex]['to'] == '1' ||
+                                    battleOrders[battleOrderIndex]['to'] == '2' ||
+                                    battleOrders[battleOrderIndex]['to'] == '3' ||
+                                    battleOrders[battleOrderIndex]['to'] == '7'
+                                ) {
+                                    //敵キャラ表示
+                                    battleTurn = 0;
+                                    resetBattleScreen();
+
+                                } else {
+                                    //味方キャラ表示
+                                    battleTurn = 1;
+                                    resetBattleScreen();
+                                }
+
+                                //from-toを取得
+                                //fromの場合、fromのキャラ名と、fromから出される技名を取得する
+                                var skillKey = 'defaultSkillKey';
+                                var skillType = 'defaultSkillType'
+                                if (battleOrders[battleOrderIndex]['skillIndex']<5) {
+                                    skillKey = 'skill' + battleOrders[battleOrderIndex]['skillIndex'];
+                                    skillType = 'skill';
+                                } else {
+                                    if (battleOrders[battleOrderIndex]['skillIndex']==5) {
+                                        skillKey = 'spSkill1';
+                                    } else {
+                                        skillKey = 'spSkill2';
+                                    }
+                                    skillType = 'spSkill';
+                                }
+                                switch(battleOrders[battleOrderIndex]['from']) {
+                                    case '1':
+                                        fromChara = chara1Data["chrName"];
+                                        doSkillId = chara1Data[skillKey];
+                                        skillName = document.getElementById(skillType+'_'+doSkillId).innerText;
+                                    break;
+                                    case '2':
+                                        fromChara = chara2Data["chrName"];
+                                        doSkillId = chara2Data[skillKey];
+                                        skillName = document.getElementById(skillType+'_'+doSkillId).innerText;
+                                    break;
+                                    case '3':
+                                        fromChara = chara3Data["chrName"];
+                                        doSkillId = chara3Data[skillKey];
+                                        skillName = document.getElementById(skillType+'_'+doSkillId).innerText;
+                                    break;
+                                    case '4':
+                                        fromChara = chara4Data["chrName"];
+                                        doSkillId = chara4Data[skillKey];
+                                        skillName = document.getElementById(skillType+'_'+doSkillId).innerText;
+                                    break;
+                                    case '5':
+                                        fromChara = chara5Data["chrName"];
+                                        doSkillId = chara5Data[skillKey];
+                                        skillName = document.getElementById(skillType+'_'+doSkillId).innerText;
+                                    break;
+                                    case '6':
+                                        fromChara = chara6Data["chrName"];
+                                        doSkillId = chara6Data[skillKey];
+                                        skillName = document.getElementById(skillType+'_'+doSkillId).innerText;
+                                    break;
+                                }
+                                //toの場合、toのキャラ名のみ取得する
+                                switch(battleOrders[battleOrderIndex]['to']) {
+                                    case '1': toChara = chara1Data["chrName"]; break;
+                                    case '2': toChara = chara2Data["chrName"]; break;
+                                    case '3': toChara = chara3Data["chrName"]; break;
+                                    case '4': toChara = chara4Data["chrName"]; break;
+                                    case '5': toChara = chara5Data["chrName"]; break;
+                                    case '6': toChara = chara6Data["chrName"]; break;
+                                    case '7': toChara = "敵パーティ全員"; break;
+                                    case '8': toChara = "味方パーティ全員"; break;
+                                }
+
+                                //スキルの実行
+                                //　通常スキル「fromからtoへskillの攻撃!」
+                                //　特別スキル　スキルのカットを表示（ちょっと動きつけたい）　→ トーク　→ 画面戻して揺れ
+                                if (battleOrders[battleOrderIndex]['skillIndex'] == '1' ||
+                                    battleOrders[battleOrderIndex]['skillIndex'] == '2' ||
+                                    battleOrders[battleOrderIndex]['skillIndex'] == '3' ||
+                                    battleOrders[battleOrderIndex]['skillIndex'] == '4'
+                                ) {
+                                    //通常スキル
+                                    doTalk(fromChara + "から" + toChara + "への" + skillName + "の攻撃！");
+
+                                    //通常スキルの場合は二個上げる
+                                    battleProcedeIndex++;
+                                    battleProcedeIndex++;
+
+                                } else {
+                                    //特別スキル
+                                    //スキルのシーンを表示
+                                    var tmpSceneData = new Object();
+                                    tmpSceneData['sceneEvt_1'] = new Object();
+                                    tmpSceneData['sceneEvt_2'] = new Object();
+
+                                    tmpSceneData['cutSceneSrc'] = document.getElementById('spSkill_'+doSkillId).title;
+                                    tmpSceneData['sceneEvt_1']['talkContent'] = battleOrders[battleOrderIndex]['content'];
+                                    tmpSceneData['sceneEvt_1']['wipeSrc'] = battleOrders[battleOrderIndex]['wipe'];
+                                    tmpSceneData['sceneEvt_2']['talkContent'] = fromChara + "は" + skillName + "を繰り出した！";
+                                    if (battleOrders[battleOrderIndex]['shake']=="1") {
+                                        tmpSceneData['sceneEvt_2']['shakeType'] = "h"; //0か1か入ってる
+                                        tmpSceneData['sceneEvt_2']['sound'] = 'bgm/地鳴り系/岩が真っ二つに割れる.mp3'; //必殺技のいい感じの音に後で変える
+                                    }
+
+                                    //バトル中のシーンの順番の組み立てめんどくさいなあ、、
+                                    //次、case 1まで作って流れチェック
+                                    doScene(tmpSceneData);
+
+                                    //特別スキルの場合は一個だけ上げる
+                                    battleProcedeIndex++;
+                                }
+
+                            break;
+
+                            case 1:
+                            //特別スキルの後にワンクッション置く用、通常スキルの場合は通らない。
+                                resetBattleScreen();
+                                battleProcedeIndex++;
+                            break;
+                            case 2:
+                                //ダメージ計算
+                                switch(battleOrders[battleOrderIndex]['to']) {
+                                    case '1':
+                                        var tmpHP = chara1Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                        chara1Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                    break;
+                                    case '2':
+                                        var tmpHP = chara2Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                        chara2Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                    break;
+                                    case '3':
+                                        var tmpHP = chara3Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                        chara3Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                    break;
+                                    case '4':
+                                        var tmpHP = chara4Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                        chara4Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                    break;
+                                    case '5':
+                                        var tmpHP = chara5Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                        chara5Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                    break;
+                                    case '6':
+                                        var tmpHP = chara6Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                        chara6Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                    break;
+                                    case '7':
+                                        if (chara1Data != null && chara1Data["HP"] != 0) {
+                                            var tmpHP = chara1Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                            chara1Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                        }
+                                        if (chara2Data != null && chara2Data["HP"] != 0) {
+                                            var tmpHP = chara2Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                            chara2Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                        }
+                                        if (chara3Data != null && chara3Data["HP"] != 0) {
+                                            var tmpHP = chara3Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                            chara3Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                        }
+                                    break;
+                                    case '8':
+                                        if (chara4Data != null && chara4Data["HP"] != 0) {
+                                            var tmpHP = chara4Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                            chara4Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                        }
+                                        if (chara5Data != null && chara5Data["HP"] != 0) {
+                                            var tmpHP = chara5Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                            chara5Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                        }
+                                        if (chara6Data != null && chara6Data["HP"] != 0) {
+                                            var tmpHP = chara6Data["HP"]-battleOrders[battleOrderIndex]['damage'];
+                                            chara6Data["HP"] = tmpHP>0 ? tmpHP : 0;
+                                        }
+                                    break;
+                                }
+
+                                //画面リセット
+                                resetBattleScreen();
+
+                                //対象のキャラだけ一定時間点滅させて表示させる
+                                switch(battleOrders[battleOrderIndex]['to']) {
+                                    case '1': showBattleChara(1, true, chara1Data["chrName"], chara1Data["HP"], chara1Data['chrImgName'], true); break;
+                                    case '2': showBattleChara(2, true, chara2Data["chrName"], chara2Data["HP"], chara2Data['chrImgName'], true); break;
+                                    case '3': showBattleChara(3, true, chara3Data["chrName"], chara3Data["HP"], chara3Data['chrImgName'], true); break;
+                                    case '4': showBattleChara(1, false, chara4Data["chrName"], chara4Data["HP"], chara4Data['chrImgName'], true); break;
+                                    case '5': showBattleChara(2, false, chara5Data["chrName"], chara5Data["HP"], chara5Data['chrImgName'], true); break;
+                                    case '6': showBattleChara(3, false, chara6Data["chrName"], chara6Data["HP"], chara6Data['chrImgName'], true); break;
+                                    case '7':
+                                        var chrNames  = [null, null, null];
+                                        var chrHPs  = [null, null, null];
+                                        var chrImgNames  = [null, null, null];
+                                        if (chara1Data != null && !chara1KOflg) {
+                                            chrNames[0] = chara1Data["chrName"];
+                                            chrHPs[0] = chara1Data["HP"];
+                                            chrImgNames[0] = chara1Data['chrImgName'];
+                                        }
+                                        if (chara2Data != null && !chara2KOflg) {
+                                            chrNames[1] = chara2Data["chrName"];
+                                            chrHPs[1] = chara2Data["HP"];
+                                            chrImgNames[1] = chara2Data['chrImgName'];
+                                        }
+                                        if (chara3Data != null && !chara3KOflg) {
+                                            chrNames[2] = chara3Data["chrName"];   
+                                            chrHPs[2] = chara3Data["HP"];
+                                            chrImgNames[2] = chara3Data['chrImgName'];
+                                        }
+                                        showBattleChara(4, true, chrNames, chrHPs, chrImgNames, true);
+                                    break;
+                                    case '8':
+                                        var chrNames  = [null, null, null];
+                                        var chrHPs  = [null, null, null];
+                                        var chrImgNames  = [null, null, null];
+                                        if (chara4Data != null && !chara4KOflg) {
+                                            chrNames[0] = chara4Data["chrName"];
+                                            chrHPs[0] = chara4Data["HP"];
+                                            chrImgNames[0] = chara4Data['chrImgName'];
+                                        }
+                                        if (chara5Data != null && !chara5KOflg) {
+                                            chrNames[1] = chara5Data["chrName"];
+                                            chrHPs[1] = chara5Data["HP"];
+                                            chrImgNames[1] = chara5Data['chrImgName'];
+                                        }
+                                        if (chara6Data != null && !chara6KOflg) {
+                                            chrNames[2] = chara6Data["chrName"];   
+                                            chrHPs[2] = chara6Data["HP"];
+                                            chrImgNames[2] = chara6Data['chrImgName'];
+                                        }
+                                        showBattleChara(4, true, chrNames, chrHPs, chrImgNames, true);
+                                    break;
+                                }
+
+                                //音（普通と特別で音分けた方いいかな）
+                                sound('bgm/地鳴り系/岩が真っ二つに割れる.mp3');
+
+                                //実行中skill終わり、命令インデックスを上げる
+                                battleOrderIndex++;
+                                //バトル進行インデックス初期化
+                                battleProcedeIndex = 0;
+
+                            break;
+                        }
+                    break;
+                    case 'lose':
+                        //やむを得ない理由でバトルが終わる（勝負は一旦お預けだ的な）時に使う
+
+                    break;
+                }
+
+                //最後のイベントだったら
+                if (battleOrderIndex == Object.keys(battleOrders).length) {
+                    //フラグを戻す
+                    //バトル中フラグ
+                    battleFlg = false;
+                    //バトルエンドフラグ　バトル中に、バトルを終了するための判断フラグ
+                    battleEndFlg = false;
+                    //バトルオプション選択フラグ
+                    selectBattleOptionFlg = false;
+                    //バトル中フラグ
+                    doingBattleFlg = false;
+                    //バトルオーダーインデックス
+                    battleOrderIndex = 0;
+                    //対戦オプションインデックス
+                    targetBattleOption = 0;
+                    //バトルキャラデータ
+                    chara1Data = null;
+                    chara2Data = null;
+                    chara3Data = null;
+                    chara4Data = null;
+                    chara5Data = null;
+                    chara6Data = null;
+                    //ボス判定
+                    isBoss = "0";
+                    //バトルターン
+                    battleTurn = 0;
+                    //KOフラグ
+                    chara1KOflg = false;
+                    chara2KOflg = false;
+                    chara3KOflg = false;
+                    chara4KOflg = false;
+                    chara5KOflg = false;
+                    chara6KOflg = false;
+                }
+
+
+            }   
 
         //道具の時
         } else if (toolFlg) {
@@ -536,18 +880,7 @@ function keyDownHandler(evt) {
                     if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];
                     doTalk(talk, wipe);
 
-                    //揺れ（あったら）
-                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType")) {
-                        //ゆらす
-                        shake(sceneEvts[sceneEvtsIndex]['shakeType']);
-                    }
-
-                    //サウンド（あったら）
-                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty("sound")) {
-                        sound(sceneEvts[sceneEvtsIndex]['sound']);
-                    }
-
-                    break;
+                break;
             }
 
         } else {
@@ -1381,6 +1714,7 @@ var sceneFlg = false;
 var sceneEvts = [];
 var sceneEvtsIndex = 0;
 var sceneImg = null;
+var doSceneEffectFlg = false; 
 function doScene(sceneData) {
     //console.log(sceneData);
     //drawを止める
@@ -1390,7 +1724,8 @@ function doScene(sceneData) {
     //バトル画面を表示する
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);  
     sceneImg =  document.getElementById(sceneData['cutSceneSrc']);
-    viewContext.drawImage(sceneImg, 128, 29);
+    viewContext.globalAlpha = 0;
+    showCutScene(sceneImg, 128, 29);
     //シーンイベントを詰める
     var index = 1
     while(sceneData.hasOwnProperty('sceneEvt_'+index)) {
@@ -1823,49 +2158,6 @@ function drawMainCharacterAndFollowCharacter() {
     }
 
 }
-
-// 上下の場合の左右切り替えフラグ
-// var sideSwitchFlg = true;
-
-// メインキャラクターを表示する
-// function drawMainCharacter() {
-//     //歩くアニメーションはここで実装する
-//     //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
-//     switch (scrollDir) {
-//         case 'left': 
-//             if (scrollPos == 3) mainCharaImg = mainCharaImgArray[9];
-//             if (scrollPos == 25) mainCharaImg = mainCharaImgArray[8];
-//             break;
-//         case 'up':
-//             //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
-//             if (sideSwitchFlg) {
-//                 if (scrollPos == 3) mainCharaImg = mainCharaImgArray[4];
-//                 if (scrollPos == 25) mainCharaImg = mainCharaImgArray[3];   
-//             } else {
-//                 if (scrollPos == 3) mainCharaImg = mainCharaImgArray[5];
-//                 if (scrollPos == 25) mainCharaImg = mainCharaImgArray[3];   
-//             } 
-//             break;
-//         case 'right':
-//             if (scrollPos == 3) mainCharaImg = mainCharaImgArray[7];
-//             if (scrollPos == 25) mainCharaImg = mainCharaImgArray[6];
-//             break;
-//         case 'down':
-//             //上下の場合は、左右の手足の組み合わせを一歩ごとに切り替える必要がある
-//             if (sideSwitchFlg) {
-//                 if (scrollPos == 3) mainCharaImg = mainCharaImgArray[1];
-//                 if (scrollPos == 25) mainCharaImg = mainCharaImgArray[0];   
-//             } else {
-//                 if (scrollPos == 3) mainCharaImg = mainCharaImgArray[2];
-//                 if (scrollPos == 25) mainCharaImg = mainCharaImgArray[0];   
-//             }  
-//             break;
-//     }
-//     //上下の場合の左右切り替え
-//     if (scrollPos == 31) sideSwitchFlg = sideSwitchFlg ? false : true;
-//     //メインキャラを描画
-//     viewContext.drawImage(mainCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight);
-// }
 
 
 var currrentToolIndex = 0; //現在選択中のツールインデックス用の変数、ここでは使わず、キーイベント受付のタイミングで使用
@@ -2431,9 +2723,6 @@ function doEffect(effectData) {
             }
 
             viewContext.drawImage(reactImage,viewCanvasHalfWidth,viewCanvasHalfHeight-32);
-            // window.setTimeout(function(){
-            //     drawCanvas();
-            // }, 2000);
 
             //音を出す
             var soundPath = effectData['sound'];
@@ -2528,122 +2817,327 @@ function doTool(toolData){
     }
 }
 
-
 //バトル
 function doBattle(battleData) {
     //drawを止める
     drawFlg = false;
     //バトル中にする
     battleFlg = true;
-    //バトル画面を表示する
-    showBattleScreen(battleData);
+    //バトル開始アニメーション
+    showBattleStartAnimation();
+    sound('bgm/分類無し効果音/キャンセル1.mp3');
+    //バトル画面を表示する（遅延表示）
+    setTimeout(function(){
+        showBattleScreen(battleData);    
+    },800);
+}
+
+var BattleStartAniIndex = 1;
+function showBattleStartAnimation() {
+    //画像もう作っておいて、getIdで順繰りに表示していく
+    var AniImg = document.getElementById("battle_"+BattleStartAniIndex);
+    viewContext.drawImage(AniImg, 0, 0);
+
+    BattleStartAniIndex++;
+    if (BattleStartAniIndex == 9) {
+        BattleStartAniIndex = 1;
+        return;
+    }
+    setTimeout("showBattleStartAnimation()", 100);
 }
 
 //バトル画面を表示する
+var battleOrders;
+var chara1Data = null; //このデータのHPをバトル中にいじっていく
+var chara2Data = null;
+var chara3Data = null;
+var chara4Data = null;
+var chara5Data = null;
+var chara6Data = null;
+var isBoss = "0";
+var battleTurn = 0; //0:敵　1:味方 リセットバトルスクリーンで振り分けるのに使う
+var fromChara = ""; //攻撃元
+var doSkillId = "";
+var toChara = ""; //攻撃先
+var skillName = ""; //攻撃技名
 function showBattleScreen(battleData) {
-    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(0, 96, viewCanvasWidth, viewCanvasHeight);
-    var chara1 =  battleData['chara1'];
-    var chara2 =  battleData['chara2'];
-    var chara3 =  battleData['chara3'];
-    var charaGroup =  battleData['charaGroup'];
-    var chara1Data = projectDataObj['characters'][chara1];
-    var chara2Data = projectDataObj['characters'][chara2];
-    var chara3Data = projectDataObj['characters'][chara3];
 
-    //画面上部：敵キャラ情報表示（96）
+    //前回の残ってたらリセット
+    chara1Data = null;
+    chara2Data = null;
+    chara3Data = null;
+    chara4Data = null;
+    chara5Data = null;
+    chara6Data = null;
+
     viewContext.fillStyle = 'white';
-    viewContext.fillRect(0, 0, viewCanvasWidth, 96);
+    viewContext.fillRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+
+    //Object.assign({}, tmp);
+    if (battleData['chara1'] != "") chara1Data = Object.assign({}, projectDataObj['characters'][battleData['chara1']]);
+    if (battleData['chara2'] != "") chara2Data = Object.assign({}, projectDataObj['characters'][battleData['chara2']]);
+    if (battleData['chara3'] != "") chara3Data = Object.assign({}, projectDataObj['characters'][battleData['chara3']]);
+    if (battleData['chara4'] != "") chara4Data = Object.assign({}, projectDataObj['characters'][battleData['chara4']]);
+    if (battleData['chara5'] != "") chara5Data = Object.assign({}, projectDataObj['characters'][battleData['chara5']]);
+    if (battleData['chara6'] != "") chara6Data = Object.assign({}, projectDataObj['characters'][battleData['chara6']]);
+
+    //最初は敵キャラ表示
+    if (chara1Data != null) showBattleChara(1, true, chara1Data["chrName"], chara1Data["HP"], chara1Data['chrImgName']);
+    if (chara2Data != null) showBattleChara(2, true, chara2Data["chrName"], chara2Data["HP"], chara2Data['chrImgName']);
+    if (chara3Data != null) showBattleChara(3, true, chara3Data["chrName"], chara3Data["HP"], chara3Data['chrImgName']);
+
+    //バトルオーダー取得
+    battleOrders = battleData['battleOrders'];
+
+    //これなんのために作ったんだっけ、、
+    isBoss =  battleData['isBoss'];
+
+    //キャラグルーム名表示
+    doTalk(battleData['charaGroup'] + "が現れた！！");
+}
+
+//バトル画面をリセットする
+function resetBattleScreen() {
+
+    viewContext.fillStyle = 'white';
+    viewContext.fillRect(0, 0, viewCanvasWidth, viewCanvasHeight);
+
+    if (battleTurn == 0) {
+        //敵キャラ表示
+        if (chara1Data != null) showBattleChara(1, true, chara1Data["chrName"], chara1Data["HP"], chara1Data['chrImgName']);
+        if (chara2Data != null) showBattleChara(2, true, chara2Data["chrName"], chara2Data["HP"], chara2Data['chrImgName']);
+        if (chara3Data != null) showBattleChara(3, true, chara3Data["chrName"], chara3Data["HP"], chara3Data['chrImgName']);
+
+    } else {
+        //味方キャラ表示
+        if (chara4Data != null) showBattleChara(1, false, chara4Data["chrName"], chara4Data["HP"], chara4Data['chrImgName']);
+        if (chara5Data != null) showBattleChara(2, false, chara5Data["chrName"], chara5Data["HP"], chara5Data['chrImgName']);
+        if (chara6Data != null) showBattleChara(3, false, chara6Data["chrName"], chara6Data["HP"], chara6Data['chrImgName']);
+    }
+
+}
+
+//バトルキャラを表示する
+//キャラ位置、敵フラグ、キャラ名、HP、キャライメージネーム
+var damageEffectCounter = 0;
+var KOcharaNames = '';
+var chara1KOflg = false;
+var chara2KOflg = false;
+var chara3KOflg = false;
+var chara4KOflg = false;
+var chara5KOflg = false;
+var chara6KOflg = false;
+function showBattleChara(index, enemyFlg, chrName, HP, chrImgName, damageEffectFlg=false) {
+
+    if (damageEffectFlg) {
+        if (damageEffectCounter == 120) { //120は適当な数値
+            //ダメージエフェクト中で、カウンターがマックスになったら終了
+            damageEffectCounter = 0;
+            var timerId = setTimeout(function() {
+                showBattleChara(index, enemyFlg, chrName, HP, chrImgName, damageEffectFlg);
+            }, 1);
+            clearTimeout(timerId);
+
+            if (index == 4) {
+            //ALLが対象のとき
+                for (var i=0; i<HP.length; i++) {
+                    if (enemyFlg) {
+                        if(HP[i] != null && HP[i] <= 0) {
+                            //キャラ瀕死。
+                            if (i == 0 && !chara1KOflg) {
+                                KOcharaNames += chrName[i]+"、";
+                                chara1KOflg = true;
+                            } else if (i == 1 && !chara2KOflg) {
+                                KOcharaNames += chrName[i]+"、";
+                                chara2KOflg = true;
+                            } else {
+                                KOcharaNames += chrName[i]+"、";
+                                chara3KOflg = true;
+                            }
+                        } else {
+                            //キャラを通常表示する（resetBattleScreendでも可）
+                            showBattleChara(index, enemyFlg, chrName, HP, chrImgName, false);
+                        }
+                    } else {
+                        if(HP[i] != null && HP[i] <= 0) {
+                            //キャラ瀕死。
+                            if (i == 0 && !chara1KOflg) {
+                                KOcharaNames += chrName[i]+"、";
+                                chara1KOflg = true;
+                            } else if (i == 1 && !chara2KOflg) {
+                                KOcharaNames += chrName[i]+"、";
+                                chara2KOflg = true;
+                            } else {
+                                KOcharaNames += chrName[i]+"、";
+                                chara3KOflg = true;
+                            }
+                        } else {
+                            //キャラを通常表示する（resetBattleScreendでも可）
+                            showBattleChara(index, enemyFlg, chrName, HP, chrImgName, false);
+                        }
+                    }
+                }
+                doTalk(KOcharaNames+"は倒れた！");
+                KOcharaNames = ''; 
+            } else {
+            //一体が対象のとき    
+                if(HP <= 0) {
+                    //キャラ瀕死。表示しない。
+                    doTalk(chrName+"は倒れた！");
+                } else {
+                    //キャラを通常表示する（resetBattleScreendでも可）
+                    showBattleChara(index, enemyFlg, chrName, HP, chrImgName, false);
+                }
+            }
+
+            return;
+        } 
+
+        if (damageEffectCounter%2 != 0) {
+            //ダメージエフェクト中で、カウンターが奇数の場合は、対象のキャラを消すのみで表示処理に進まない
+            viewContext.fillStyle = 'white';
+            if (index == 4) {
+                viewContext.fillRect((1-1)*256+10-((1-1)*8), 96-5, 224, 224);
+                viewContext.fillRect((2-1)*256+10-((2-1)*8), 96-5, 224, 224);
+                viewContext.fillRect((3-1)*256+10-((3-1)*8), 96-5, 224, 224);
+            } else {
+                viewContext.fillRect((index-1)*256+10-((index-1)*8), 96-5, 224, 224);
+            }
+            setTimeout(function() {
+                showBattleChara(index, enemyFlg, chrName, HP, chrImgName, damageEffectFlg);
+            }, drawSpeed);
+            damageEffectCounter++;
+            return;
+        }
+    }
+    //キャラ名とHPの枠
     viewContext.fillStyle = 'black';
-    viewContext.fillRect(0, 0, 224, 96);
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(2, 2, 220, 92);
+    if (index == 4) {
+        if (enemyFlg) {
+            if (chara1Data != null) viewContext.fillRect((1-1)*256+7-((1-1)*6), 5, 224, 76);
+            if (chara2Data != null) viewContext.fillRect((2-1)*256+7-((2-1)*6), 5, 224, 76);
+            if (chara3Data != null) viewContext.fillRect((3-1)*256+7-((3-1)*6), 5, 224, 76);
+        } else {
+            if (chara4Data != null) viewContext.fillRect((1-1)*256+7-((1-1)*6), 5, 224, 76);
+            if (chara5Data != null) viewContext.fillRect((2-1)*256+7-((2-1)*6), 5, 224, 76);
+            if (chara6Data != null) viewContext.fillRect((3-1)*256+7-((3-1)*6), 5, 224, 76);
+        }
+    } else {
+        viewContext.fillRect((index-1)*256+7-((index-1)*6), 5, 224, 76);
+    }
+    viewContext.fillStyle = enemyFlg ? 'lightpink' : 'paleturquoise';
+    if (index == 4) {
+        if (enemyFlg) {
+            if (chara1Data != null) viewContext.fillRect((1-1)*256+2+7-((1-1)*6), 2+5, 220, 72);
+            if (chara2Data != null) viewContext.fillRect((2-1)*256+2+7-((2-1)*6), 2+5, 220, 72);
+            if (chara3Data != null) viewContext.fillRect((3-1)*256+2+7-((3-1)*6), 2+5, 220, 72);
+        } else {
+            if (chara4Data != null) viewContext.fillRect((1-1)*256+2+7-((1-1)*6), 2+5, 220, 72);
+            if (chara5Data != null) viewContext.fillRect((2-1)*256+2+7-((2-1)*6), 2+5, 220, 72);
+            if (chara6Data != null) viewContext.fillRect((3-1)*256+2+7-((3-1)*6), 2+5, 220, 72);
+        }
+    } else {
+        viewContext.fillRect((index-1)*256+2+7-((index-1)*6), 2+5, 220, 72);
+    }
+    //キャラ名とHP
     viewContext.fillStyle = 'black';
     viewContext.textBaseline = 'top';
     viewContext.font = talkFont;
-    viewContext.fillText(chara1Data["chrName"], 10, 15); //キャラ名
-    viewContext.fillText(chara1Data["HP"], 10, 55); //HP
+    if (index == 4) {
+        if (enemyFlg) {
+            if (chara1Data != null) viewContext.fillText(chrName[0], (1-1)*256+20-((1-1)*6), 15);
+            if (chara1Data != null) viewContext.fillText('HP: '+HP[0], (1-1)*256+20-((1-1)*6), 45);
+            if (chara2Data != null) viewContext.fillText(chrName[1], (2-1)*256+20-((2-1)*6), 15);
+            if (chara2Data != null) viewContext.fillText('HP: '+HP[1], (2-1)*256+20-((2-1)*6), 45);
+            if (chara3Data != null) viewContext.fillText(chrName[2], (3-1)*256+20-((3-1)*6), 15);
+            if (chara3Data != null) viewContext.fillText('HP: '+HP[2], (3-1)*256+20-((3-1)*6), 45);
+        } else {
+            if (chara4Data != null) viewContext.fillText(chrName[0], (1-1)*256+20-((1-1)*6), 15);
+            if (chara4Data != null) viewContext.fillText('HP: '+HP[0], (1-1)*256+20-((1-1)*6), 45);
+            if (chara5Data != null) viewContext.fillText(chrName[1], (2-1)*256+20-((2-1)*6), 15);
+            if (chara5Data != null) viewContext.fillText('HP: '+HP[1], (2-1)*256+20-((2-1)*6), 45);
+            if (chara6Data != null) viewContext.fillText(chrName[2], (3-1)*256+20-((3-1)*6), 15);
+            if (chara6Data != null) viewContext.fillText('HP: '+HP[2], (3-1)*256+20-((3-1)*6), 45);
+        }
+    } else {
+        viewContext.fillText(chrName, (index-1)*256+20-((index-1)*6), 15);
+        viewContext.fillText('HP: '+HP, (index-1)*256+20-((index-1)*6), 45);
+    }
+    //キャライメージ
+    if (index == 4) {
+        if (chrImgName[0] != null) {
+            var charaImg1 = document.getElementById(chrImgName[0]);
+            if (!damageEffectFlg && HP[0] == 0) {
+                //瀕死、表示しない
+            } else {
+                viewContext.drawImage(charaImg1, (1-1)*256+10-((1-1)*8), 96-5);
+            }
+        }
+        if (chrImgName[1] != null) {
+            var charaImg2 = document.getElementById(chrImgName[1]);
+            if (!damageEffectFlg && HP[1] == 0) {
+                //瀕死、表示しない
+            } else {
+                viewContext.drawImage(charaImg2, (2-1)*256+10-((2-1)*8), 96-5);
+            }
+        }
+        if (chrImgName[2] != null) {
+            var charaImg3 = document.getElementById(chrImgName[2]);
+            if (!damageEffectFlg && HP[2] == 0) {
+                //瀕死、表示しない
+            } else {
+                viewContext.drawImage(charaImg3, (3-1)*256+10-((3-1)*8), 96-5);
+            }
+        }
+    } else {
+        var charaImg =  document.getElementById(chrImgName);
+        if (!damageEffectFlg && HP == 0) {
+            //瀕死、表示しない
+        } else {
+            viewContext.drawImage(charaImg, (index-1)*256+10-((index-1)*8), 96-5);
+        }
+    }
 
-    viewContext.fillStyle = 'black';
-    viewContext.fillRect(256, 0, 224, 96);
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(258, 2, 220, 92);
-    viewContext.fillStyle = 'black';
-    viewContext.textBaseline = 'top';
-    viewContext.font = talkFont;
-    viewContext.fillText(chara2Data["chrName"], 256+10, 15); //キャラ名
-    viewContext.fillText(chara2Data["HP"], 256+10, 55); //HP
+    //ダメージエフェクト（ある場合）
+    if (damageEffectFlg) {
+        setTimeout(function() {
+            showBattleChara(index, enemyFlg, chrName, HP, chrImgName, damageEffectFlg);
+        }, drawSpeed);
+        damageEffectCounter++;
+    }
+}
 
-    viewContext.fillStyle = 'black';
-    viewContext.fillRect(512, 0, 224, 96);
-    viewContext.fillStyle = 'white';
-    viewContext.fillRect(514, 2, 220, 92);
-    viewContext.fillStyle = 'black';
-    viewContext.textBaseline = 'top';
-    viewContext.font = talkFont;
-    viewContext.fillText(chara3Data["chrName"], 512+10, 15); //キャラ名
-    viewContext.fillText(chara3Data["HP"], 512+10, 55); //HP
-
-    //画面真ん中：敵キャラ描画（224）
-    
-    var charaGroup =  battleData['charaGroup'];
-    var isBoss =  battleData['isBoss'];
-    var chara1Img =  document.getElementById(chara1Data['chrImgName']);
-    var chara2Img =  document.getElementById(chara2Data['chrImgName']);
-    var chara3Img =  document.getElementById(chara3Data['chrImgName']);
-    viewContext.drawImage(chara1Img, 0, 96);
-    viewContext.drawImage(chara2Img, 256, 96);
-    viewContext.drawImage(chara3Img, 512, 96);
-
-    doTalk(charaGroup + "が現れた！！");
+//カットシーンを表示する
+function showCutScene(sceneImg, x, y) {
+    if (viewContext.globalAlpha > 0.9) {
+            var timerId = setTimeout(function() {
+                showCutScene(sceneImg, x, y);
+            }, 1);
+            clearTimeout(timerId);
+            return;
+    }
+    viewContext.globalAlpha += 0.1;
+    viewContext.clearRect(x, y, 480, 228);
+    viewContext.drawImage(sceneImg, 128, 29);
+    setTimeout(function() {
+        showCutScene(sceneImg, x, y);
+    }, 30); //ふんわり具合はこの数字を変えて操作する
 }
 
 //画面遷移
+//メモ：ふんわり表示する場合、showCutSceneを参考に！メインのdraw()を止めて、ふんわり終わったらdrawする感じにすれば多分いける
+var transitionFlg = false;
 function doTransition(trasitionDataObj) {
+
+    transitionFlg = true;
+    viewContext.globalAlpha = 0;
 
     //フォローキャラの追跡をリセット
     followFirstStep = true;
     countFirstStep = true;
 
-    // const sec = 3;
-
-    // const wait = (sec) => {
-    //     return new Promise((resolve, reject) => {
-    //         setTimeout(resolve, sec*1000);
-    //         //setTimeout(() => {reject(new Error("エラー！"))}, sec*1000);
-    //     });
-    // };
-
-    // //1秒くらいかけてフェードアウト
-    // async () => {
-    //     try {
-    //         await wait(sec);
-    //             // ここに目的の処理を書きます。
-    //         alert(sec + '秒たちました！');
-    //     } catch (err) {
-    //         console.error(err);
-    //     }
-    // }
-
     //遷移専用の音を出す。
     sound('bgm/分類無し効果音/決定、ボタン押下5.mp3');
-
-    // var imgObj = new Image();
-    // imgObj.src = '/rpg-player/public/image/test.gif';
-
-    // viewContext.drawImage(imgObj,0,0);
-
-    //0.7秒スリープさせる
-    // const d1 = new Date();
-    // while (true) {
-    //     const d2 = new Date();
-    //     if (d2 - d1 > 4200) {
-    //         break;
-    //     }
-    // }
-
-    viewContext.globalAlpha = 1;
 
     //マップ変更前にオブジェクトデータをリセット
     for (var i=0; i<mapObjects.length; i++) {
@@ -2707,20 +3201,6 @@ function doTransition(trasitionDataObj) {
         drawFlg = true;
         draw();
     }
-
-    //※※遷移イベントは、必ずそのマップチップの最後のイベントに設定する
-    // if (eventIndex+1 != events.length) {
-    //     eventIndex++;
-    //     if(doingEvtType == 'map') {
-    //         doEvents();
-    //     } else {
-    //         doObjectEvents();
-    //     }
-    // } else {
-    //     eventIndex = 0;
-    //     //drawFlg = true;
-    //     //draw(); //再描画開始
-    // }
 
 }
 
@@ -3156,130 +3636,205 @@ function nextTalk() {
         showTalkContents();
     } else {
         //なかったら
-        //会話イベント終了、次のイベントへ(フラグ等戻す)
-        talkFlg = false; //トーク中フラグ
-        talkLineLength = 0; //会話一行長さ
-        talkLines = []; //会話行数
-        talkLineIndex = 0; //会話行インデックス
-        talkPages = []; //会話ページ
-        talkPageIndex = 0; //会話ページインデックス
-        if (battleFlg) {
-            if (battleEndFlg) {
-                targetBattleOption = 0;
-                battleEndFlg = false;
-                battleFlg = false;
+        //シーンの場合とそれ以外で分ける（シーンは揺れ&音だしのワンテンポがある、doSceneEffectFlgで判定する）
+        if (sceneFlg && 
+            doSceneEffectFlg &&
+            (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType") || sceneEvts[sceneEvtsIndex].hasOwnProperty("sound"))
+        ) {
+            //揺れ（あったら）
+            if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType")) {
+                //ゆらす
+                shake(sceneEvts[sceneEvtsIndex]['shakeType']);
+            }
+
+            //サウンド（あったら）
+            if (sceneEvts[sceneEvtsIndex].hasOwnProperty("sound")) {
+                sound(sceneEvts[sceneEvtsIndex]['sound']);
+            }
+
+            //フラグを戻す
+            doSceneEffectFlg = false;
+                        sceneFlg = false;
+                        sceneEvts = [];
+                        sceneEvtsIndex = 0;
+                        sceneImg = null;
+
+        } else {
+
+            //会話イベント終了、次のイベントへ(フラグ等戻す)
+            talkFlg = false; //トーク中フラグ
+            talkLineLength = 0; //会話一行長さ
+            talkLines = []; //会話行数
+            talkLineIndex = 0; //会話行インデックス
+            talkPages = []; //会話ページ
+            talkPageIndex = 0; //会話ページインデックス
+            if (battleFlg) {
+
+                if (sceneFlg) { //これはこれで必要か
+
+                    if (sceneEvtsIndex+1 != sceneEvts.length) {
+                        //次のシーンイベントがあれば実行
+
+                        //バトル画面を表示する
+                        viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);  
+                        viewContext.drawImage(sceneImg, 128, 29);
+
+                        sceneEvtsIndex++;
+                        var talk = sceneEvts[sceneEvtsIndex]['talkContent'];
+                        if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];
+                        doTalk(talk, wipe);
+
+                        if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType") || sceneEvts[sceneEvtsIndex].hasOwnProperty("sound")) {
+                            doSceneEffectFlg = true;
+                        }
+
+                    } else {
+
+                        sceneFlg = false;
+                        sceneEvts = [];
+                        sceneEvtsIndex = 0;
+                        sceneImg = null;
+                    }
+
+                } else {
+                    if (battleEndFlg) {
+                        targetBattleOption = 0;
+                        battleEndFlg = false;
+                        battleFlg = false;
+                        drawFlg = true;
+                        draw();
+                        if (eventIndex+1 != events.length) {
+                            eventIndex++;
+                            if(doingEvtType == 'map') {
+                                doEvents();
+                            } else {
+                                doObjectEvents();
+                            }
+                        } else {
+                            eventIndex = 0;
+                        }
+                    } else {
+                        if (doingBattleFlg) {
+                            //これはこれで必要！
+                        } else {
+                            showBattleOptions(); //敵が現れた後にAボタン受付で開始
+                        }
+
+                    }
+                }
+
+            } else if (questionFlg) {
+                var ret = showYesNo(0);
+                return ret;
+
+            } else if (sceneFlg) {
+
+                if (sceneEvtsIndex+1 != sceneEvts.length) {
+                    //次のシーンイベントがあれば実行
+
+                    //バトル画面を表示する
+                    viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);  
+                    viewContext.drawImage(sceneImg, 128, 29);
+
+                    sceneEvtsIndex++;
+                    var talk = sceneEvts[sceneEvtsIndex]['talkContent'];
+                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];
+                    doTalk(talk, wipe);
+
+                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType") || sceneEvts[sceneEvtsIndex].hasOwnProperty("sound")) {
+                        doSceneEffectFlg = true;
+                    }
+
+                } else {
+                //なければ次のイベント
+                    //必要なら終わりのタイミングで音を出す
+                    //sound();
+
+                    //シーン関係の変数を戻す
+                    sceneFlg = false;
+                    sceneEvts = [];
+                    sceneEvtsIndex = 0;
+                    sceneImg = null;
+                    drawFlg = true;
+                    draw(); //再描画開始
+                    if (eventIndex+1 != events.length) {
+                        eventIndex++;
+                        if(doingEvtType == 'map') {
+                            doEvents();
+                        } else {
+                            doObjectEvents();
+                        }
+                    } else {
+                        eventIndex = 0;
+                    }
+                }
+
+            } else if (eventIndex+1 != events.length) {
+                //次のイベントがあったら
+                //現在のイベントがバトルの場合とそれ以外で分ける
+                var evtFullName = events[eventIndex];
+                var index = evtFullName.indexOf('_');
+                var evtName = evtFullName.substr(index+1);
+                if (evtName == 'battle') {
+                    //バトルの場合は、drawして、ちょっと遅らせてから次のイベント発動
+                    drawFlg = true;
+                    draw();
+                    setTimeout(function(){
+                        if (eventIndex+1 != events.length) {
+                            eventIndex++;
+                            if(doingEvtType == 'map') {
+                                doEvents();
+                            } else {
+                                doObjectEvents();
+                            }
+                        } else {
+                            eventIndex = 0;
+                        }
+                    }, 1000);
+                } else {
+                    //画面をクリア
+                    drawCanvas();
+                    //次のイベント呼び出し
+                    eventIndex++;
+                    if(doingEvtType == 'map') {
+                        doEvents();
+                    } else {
+                        doObjectEvents();
+                    }
+                }
+            } else {
+                //イベントが無くなったら
+                //イベントが無くなったタイミングで進入フラグ（ツール使用イベントで使用）を初期化
+                enterFlg = false;
+                //イベントインデックスを初期化
+                eventIndex = 0;
+                //イベントが無くなったタイミングで一歩戻るフラグがtrueの場合、一歩戻る指令を出す
+                if(goBackFlg) {
+                    var KEvent = "";
+                    switch (scrollDir) {
+                        //scrollDirと逆の方向に一マス進む
+                        case 'left':   
+                            KEvent = new KeyboardEvent( "keydown", { keyCode: 39 });
+                        break;
+                        case 'up':   
+                            KEvent = new KeyboardEvent( "keydown", { keyCode: 40 });
+                        break;
+                        case 'right':   
+                            KEvent = new KeyboardEvent( "keydown", { keyCode: 37 });
+                        break;
+                        case 'down':   
+                            KEvent = new KeyboardEvent( "keydown", { keyCode: 38 });
+                        break;
+                    }
+                    //一歩戻る
+                    document.body.dispatchEvent( KEvent );
+                    //フラグを初期化
+                    goBackFlg = false;
+                }
+                //再描画開始
                 drawFlg = true;
                 draw();
-                if (eventIndex+1 != events.length) {
-                    eventIndex++;
-                    if(doingEvtType == 'map') {
-                        doEvents();
-                    } else {
-                        doObjectEvents();
-                    }
-                } else {
-                    eventIndex = 0;
-                    //drawFlg = true;
-                    //draw(); //再描画開始
-                }
-            } else {
-                showBattleOptions(); //敵が現れた後にAボタン受付で開始
             }
-        } else if (questionFlg) {
-            var ret = showYesNo(0);
-            return ret;
-
-        } else if (sceneFlg) {
-            if (sceneEvtsIndex+1 != sceneEvts.length) {
-            //次のシーンイベントがあれば実行
-
-                //バトル画面を表示する
-                viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);  
-                viewContext.drawImage(sceneImg, 128, 29);
-
-                sceneEvtsIndex++;
-                var talk = sceneEvts[sceneEvtsIndex]['talkContent'];
-                if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];
-                doTalk(talk, wipe);
-
-                //揺れ（あったら）
-                if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType")) {
-                    //ゆらす
-                    shake(sceneEvts[sceneEvtsIndex]['shakeType']);
-                }
-
-                //サウンド（あったら）
-                if (sceneEvts[sceneEvtsIndex].hasOwnProperty("sound")) {
-                    sound(sceneEvts[sceneEvtsIndex]['sound']);
-                }
-
-            } else {
-            //なければ次のイベント
-                //必要なら終わりのタイミングで音を出す
-                //sound();
-
-                //シーン関係の変数を戻す
-                sceneFlg = false;
-                sceneEvts = [];
-                sceneEvtsIndex = 0;
-                sceneImg = null;
-                drawFlg = true;
-                draw(); //再描画開始
-                if (eventIndex+1 != events.length) {
-                    eventIndex++;
-                    if(doingEvtType == 'map') {
-                        doEvents();
-                    } else {
-                        doObjectEvents();
-                    }
-                } else {
-                    eventIndex = 0;
-                }
-            }
-
-        } else if (eventIndex+1 != events.length) {
-            //次のイベントがあったら
-            //画面をクリア
-            drawCanvas();
-            //次のイベント呼び出し
-            eventIndex++;
-            if(doingEvtType == 'map') {
-                doEvents();
-            } else {
-                doObjectEvents();
-            }
-        } else {
-            //イベントが無くなったら
-            //イベントが無くなったタイミングで進入フラグ（ツール使用イベントで使用）を初期化
-            enterFlg = false;
-            //イベントインデックスを初期化
-            eventIndex = 0;
-            //イベントが無くなったタイミングで一歩戻るフラグがtrueの場合、一歩戻る指令を出す
-            if(goBackFlg) {
-                var KEvent = "";
-                switch (scrollDir) {
-                    //scrollDirと逆の方向に一マス進む
-                    case 'left':   
-                        KEvent = new KeyboardEvent( "keydown", { keyCode: 39 });
-                        break;
-                    case 'up':   
-                        KEvent = new KeyboardEvent( "keydown", { keyCode: 40 });
-                        break;
-                    case 'right':   
-                        KEvent = new KeyboardEvent( "keydown", { keyCode: 37 });
-                        break;
-                    case 'down':   
-                        KEvent = new KeyboardEvent( "keydown", { keyCode: 38 });
-                        break;
-                }
-                //一歩戻る
-                document.body.dispatchEvent( KEvent );
-                //フラグを初期化
-                goBackFlg = false;
-            }
-            //再描画開始
-            drawFlg = true;
-            draw();
         }
     }
 }
