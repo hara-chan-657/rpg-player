@@ -3847,6 +3847,10 @@ function openHiddenInfo() {
     });
 }
 
+function openProjectsContainerDiv() {
+    document.getElementById("projectsContainer").style.display = 'block';
+}
+
 
 
 

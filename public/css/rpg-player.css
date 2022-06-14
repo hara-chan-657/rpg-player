@@ -19,6 +19,12 @@ html {
     font-size: 25px;
 }
 
+#openPrjDiv {
+    margin-top: 570px;
+    position: fixed;
+    font-size: 25px;
+}
+
 #eventSign {
     margin-top: 515px;
     position: fixed;
@@ -27,7 +33,7 @@ html {
 
 #projectsContainer {
     margin-top: 550px;
-    display: ;
+    display: none;
 }
 
 
