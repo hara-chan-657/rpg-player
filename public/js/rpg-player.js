@@ -2829,7 +2829,7 @@ function doBattle(battleData) {
     //バトル画面を表示する（遅延表示）
     setTimeout(function(){
         showBattleScreen(battleData);    
-    },800);
+    },1100);
 }
 
 var BattleStartAniIndex = 1;
@@ -2839,7 +2839,7 @@ function showBattleStartAnimation() {
     viewContext.drawImage(AniImg, 0, 0);
 
     BattleStartAniIndex++;
-    if (BattleStartAniIndex == 9) {
+    if (BattleStartAniIndex == 12) {
         BattleStartAniIndex = 1;
         return;
     }

@@ -171,7 +171,10 @@
         <img src="{{ asset('/image/battle_5.png') }}" id="battle_5"><br>
         <img src="{{ asset('/image/battle_6.png') }}" id="battle_6"><br>
         <img src="{{ asset('/image/battle_7.png') }}" id="battle_7"><br>
-        <img src="{{ asset('/image/battle_8.png') }}" id="battle_8">
+        <img src="{{ asset('/image/battle_8.png') }}" id="battle_8"><br>
+        <img src="{{ asset('/image/battle_9.png') }}" id="battle_9"><br>
+        <img src="{{ asset('/image/battle_10.png') }}" id="battle_10"><br>
+        <img src="{{ asset('/image/battle_11.png') }}" id="battle_11">
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
         <audio id="overSound" preload="auto">
             <!-- <source src="{{ asset('/sounds/effect/hokou.mp3') }}" type="audio/mp3"> -->
