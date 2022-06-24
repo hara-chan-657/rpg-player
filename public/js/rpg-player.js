@@ -31,7 +31,7 @@ var projectDataObj;
 //現在選択中マップオブジェクト;
 var currrentMapObj = null;
 //現在選択中マップオブジェクト
-mapObjects = [];
+var mapObjects = [];
 //現在選択中マップ繰り返しマップチップ
 var mapRepeat = [];
 //現在選択中マップ交互マップチップ
@@ -154,11 +154,6 @@ var mapNames = document.getElementsByClassName('mapNames');
 window.addEventListener('load', setCanvas, false);
 document.body.addEventListener('keydown', function(evt) {keyDownHandler(evt);}, false);
 document.body.addEventListener('keyup', function(evt) {keyUpHandler(evt);}, false);
-// for (var i=0; i<maps.length; i++) {
-//  maps[i].addEventListener('click', function(evt) {setEditMap(evt);}, false);
-// }
-// currentMapCanvas.addEventListener('click', function(evt) {showMapTipData(evt);}, false);
-// saveMap.addEventListener('click', saveMapToServer, false);
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////　　以下ファンクション   //////////////////////////////////////////
@@ -174,11 +169,9 @@ function setDefault() {
     loadProjectData();
     loadImages();
     loadPrjTools();
-    //setCanvas(); //window.addEventListener('load', setCanvas, false);で実行するよう修正
     showStartProject();
     draw();
     loadSpecialMapChips();
-    //playBgm('map'); //マップのBGMを再生するにはコメントアウト
 }
 
 
@@ -998,9 +991,6 @@ var doing = 0;                      //doNumと合わせて使用する。duNum�
 var doNum = 30;                     //横流しの早さを決める。
 function drawMapRepeat() {
     for (var i=0; i<mapRepeat.length; i++) {
-        //イメージの繰り返ししたい時はこれ（横流し）テストコード
-        //viewContext.drawImage(dummy, 0+shiftX, 0, 32-shiftX, 32, viewCanvasHalfWidth-mainCharaPosX + (32*aryX[i]),        viewCanvasHalfHeight-mainCharaPosY + (32*aryY[i]), 32-shiftX, 32);//なんか最後の引数dxがよくわからんけどできた
-        //viewContext.drawImage(dummy, 0,        0, shiftX,    32, viewCanvasHalfWidth-mainCharaPosX + (32*aryX[i]+mapTipLength)-shiftX, viewCanvasHalfHeight-mainCharaPosY + (32*aryY[i]), shiftX,    32);   //なんか最後の引数dxがよくわからんけどできた
         switch(mapRepeat[i][2]) {
             case 6: //left
                 viewContext.drawImage(
@@ -2255,11 +2245,6 @@ function toolDescription(description) {
                                 viewContext.fillText(talkPages[talkPageIndex][i][j], talkWinStartX+mSlideX.width+2+10, talkWinStartY+2+10+(i*mapTipLength)+(i*lineSpace));
                                 //描画した文字の長さ分、スライド値を増やす
                                 slideX += talkPages[talkPageIndex][i][j];
-                                //一瞬待つ（いったん挫折！！時間ある時にしっかり取り組むとする、、）
-                                //sleep(100);
-                                //stop();
-                                // 5秒後にメッセージを表示
-                                //console.log('5秒経過しました！');
                             }
                             //行間リセット
                             lineSpace = 0;
@@ -2287,11 +2272,6 @@ function dummy() {
             viewContext.fillText(talkPages[talkPageIndex][i][j], talkWinStartX+mSlideX.width+2+10, talkWinStartY+2+10+(i*mapTipLength)+(i*lineSpace));
             //描画した文字の長さ分、スライド値を増やす
             slideX += talkPages[talkPageIndex][i][j];
-            //一瞬待つ（いったん挫折！！時間ある時にしっかり取り組むとする、、）
-            //sleep(100);
-            //stop();
-            // 5秒後にメッセージを表示
-            //console.log('5秒経過しました！');
 
         }
         //行間リセット
@@ -3125,7 +3105,6 @@ function showCutScene(sceneImg, x, y) {
 }
 
 //画面遷移
-//メモ：ふんわり表示する場合、showCutSceneを参考に！メインのdraw()を止めて、ふんわり終わったらdrawする感じにすれば多分いける
 var transitionFlg = false;
 function doTransition(trasitionDataObj) {
 
@@ -3309,8 +3288,6 @@ function doTalk(talkContent, wipe = '') {
 
     //ワイプがあればワイプを表示
     if (wipe != '') {
-        //viewContext.fillStyle = 'black';
-        //viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
         //会話ウィンドウを黒でクリア
         viewContext.fillStyle = 'white';
         viewContext.fillRect(talkWinStartX, talkWinStartY-100, 100, 100);
@@ -3409,9 +3386,6 @@ function showYesNo(targetAnswerIndex) {
 
 function showBattleOptions() {
     selectBattleOptionFlg = true;
-    //doTalk参考に背景表示実装
-    //drawを止める
-    //drawFlg = false;
     //会話ウィンドウを白でクリア
     viewContext.fillStyle = 'black';
     viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
@@ -3428,7 +3402,6 @@ function showBattleOptions() {
         viewContext.fillText(battleOptions[i], questionWinStartX, talkWinStartY+10+(i*mapTipLength));
     }
     //カーソル描画、上下とAボタンではいいいえを選択し、結果を返す
-    //targetBattleOption = targetBattleOptionIndex; //1：はい、2：いいえ
     viewContext.fillStyle = 'black';
     viewContext.fillText('▶︎', questionWinStartX-30, talkWinStartY+10+(targetBattleOption*mapTipLength));   
 }
@@ -3556,12 +3529,6 @@ function showTalkContents() {
             viewContext.fillText(talkPages[talkPageIndex][i][j], talkWinStartX+mSlideX.width+2+10, talkWinStartY+2+10+(i*mapTipLength)+(i*lineSpace));
             //描画した文字の長さ分、スライド値を増やす
             slideX += talkPages[talkPageIndex][i][j];
-            //一瞬待つ（いったん挫折！！時間ある時にしっかり取り組むとする、、）
-            //sleep(100);
-            //stop();
-            // 5秒後にメッセージを表示
-            //console.log('5秒経過しました！');
-
         }
         //行間リセット
         lineSpace = 0;
@@ -3577,13 +3544,6 @@ function showTalkContents() {
         talkWaitFlg = false;
     }
 
-    // ビジーwaitを使う方法
-    // function sleep(waitMsec) {
-    //     var startMsec = new Date();
-    //     // 指定ミリ秒間だけループさせる（CPUは常にビジー状態）
-    //     while (new Date() - startMsec < waitMsec);
-    // }
-
     //音を出す。
     if (soundToolFlg) {
         sound('bgm/分類無し効果音/決定、ボタン押下5.mp3');
@@ -3592,17 +3552,6 @@ function showTalkContents() {
         sound('bgm/分類無し効果音/決定、ボタン押下35.mp3');
     }
 }
-
-async function stop() {
-    //const _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    let _sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-    await _sleep(20000);
-}
-
-// async function wait () {
-//     let wait_promise = new Promise( resolve => { setTimeout( resolve, 5000 ) } );
-//     await wait_promise;
-// }
 
 //会話待ち状態
 function talkWait() {

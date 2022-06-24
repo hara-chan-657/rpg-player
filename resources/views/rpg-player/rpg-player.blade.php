@@ -146,7 +146,6 @@
                 <p class="soundNames">{{$sound['baseName']}}</p>
                 <p class="soundNames">{{$sound['path']}}</p>
                 <audio id={{$sound['path']}} preload="auto">
-                    <!-- <source src="{{ asset('/sounds/bgm/SNES-Town01.mp3') }}" type="audio/mp3"> -->
                     <source src="{{ asset($sound['path']) }}" type="audio/mp3">
                     <p>※お使いのブラウザはHTML5のaudio要素をサポートしていないので音は鳴りません。</p>
                 </audio>
@@ -175,16 +174,6 @@
         <img src="{{ asset('/image/battle_9.png') }}" id="battle_9"><br>
         <img src="{{ asset('/image/battle_10.png') }}" id="battle_10"><br>
         <img src="{{ asset('/image/battle_11.png') }}" id="battle_11">
-        <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
-        <audio id="overSound" preload="auto">
-            <!-- <source src="{{ asset('/sounds/effect/hokou.mp3') }}" type="audio/mp3"> -->
-            <source src="{{ asset('/sounds/bgm/SNES-Town01.mp3') }}" type="audio/mp3">
-            <!-- <source src="sound.ogg" type="audio/ogg"> -->
-            <!-- <source src="sound.wav" type="audio/wav"> -->
-            <p>※お使いのブラウザはHTML5のaudio要素をサポートしていないので音は鳴りません。</p>
-        </audio>
-
-        <button onclick="sound()">鳴るよ</button>
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
     </div>
 <script src="{{ asset('/js/rpg-player.js') }}"></script>

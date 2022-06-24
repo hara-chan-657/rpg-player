@@ -1,5 +1,9 @@
 <?php
 
+// ※DBからデータを取得するために、rpg-editorからロジックを持ってきた
+// なのでplayerのDBの向き先は、rpg-editorになっている
+// 参照系だけしか使っていない
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
