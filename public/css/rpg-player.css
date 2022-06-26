@@ -78,7 +78,7 @@ body{
     animation-name: shake-tate;
     animation-iteration-count: infinite;
     animation-direction: alternate;
-    animation-duration: 300ms;
+    animation-duration: 200ms;
 }@keyframes shake-tate{
     0%{transform: translate(0px,-3px) rotate(2deg)}
     10%{transform: translate(0px,0px) rotate(0deg)}
@@ -98,7 +98,7 @@ body{
     animation-name: shake-yoko;
     animation-iteration-count: infinite;
     animation-direction: alternate;
-    animation-duration: 300ms;
+    animation-duration: 200ms;
 }@keyframes shake-yoko{
     0%{transform: translate(6px,1px)}
     10%{transform: translate(-12px,1px)}

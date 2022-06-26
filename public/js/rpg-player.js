@@ -542,7 +542,7 @@ function keyDownHandler(evt) {
                                     tmpSceneData['sceneEvt_2']['talkContent'] = fromChara + "は" + skillName + "を繰り出した！";
                                     if (battleOrders[battleOrderIndex]['shake']=="1") {
                                         tmpSceneData['sceneEvt_2']['shakeType'] = "h"; //0か1か入ってる
-                                        tmpSceneData['sceneEvt_2']['sound'] = 'bgm/地鳴り系/岩が真っ二つに割れる.mp3'; //必殺技のいい感じの音に後で変える
+                                        tmpSceneData['sceneEvt_2']['sound'] = 'effect/sub_nature/explosion_6.ogg'; //必殺技のいい感じの音に後で変える
                                     }
 
                                     //バトル中のシーンの順番の組み立てめんどくさいなあ、、
@@ -672,8 +672,17 @@ function keyDownHandler(evt) {
                                     break;
                                 }
 
-                                //音（普通と特別で音分けた方いいかな）
-                                sound('bgm/地鳴り系/岩が真っ二つに割れる.mp3');
+                                if (battleOrders[battleOrderIndex]['skillIndex'] == '1' ||
+                                    battleOrders[battleOrderIndex]['skillIndex'] == '2' ||
+                                    battleOrders[battleOrderIndex]['skillIndex'] == '3' ||
+                                    battleOrders[battleOrderIndex]['skillIndex'] == '4'
+                                ) {
+                                    //音（普通）
+                                    sound('effect/sub_attack/hit_sound_8.wav');
+                                } else {
+                                    //音（特別）
+                                    sound('effect/sub_attack/hit_sound_1.wav');
+                                }
 
                                 //実行中skill終わり、命令インデックスを上げる
                                 battleOrderIndex++;
@@ -778,7 +787,7 @@ function keyDownHandler(evt) {
                     viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4); //前回表示クリア
                     toolDescription(prjTools[haveTools[currrentToolIndex]]['description']);
                     //音を出す
-                    sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
+                    sound('effect/sub_system/select_5.ogg');
 
                 break;
                 case 40: //下
@@ -827,10 +836,10 @@ function keyDownHandler(evt) {
                         viewContext.fillRect(200+2+10+450, (50+2)+((maxToolDispNum)*lineSpace), 35, 35);//前回カーソル表示部分クリア
                     }
                     //音を出す
-                    sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
+                    sound('effect/sub_system/select_5.ogg');
                 break;
                 case 84: //tキー
-                    sound('bgm/分類無し効果音/キャンセル2.mp3');
+                    sound('effect/sub_dull_sound/dull_sound_6.wav');
                     toolFlg = false;
                     currrentToolIndex = 0; // ツールインデックスを0に戻す
                     eventIndex = 0;
@@ -926,7 +935,7 @@ function keyDownHandler(evt) {
                     drawFlg = false;
                     toolFlg = true;
                     var res = showHaveTools();
-                    sound('bgm/分類無し効果音/キャンセル1.mp3');
+                    sound('effect/sub_system/select_5.ogg');
                     if (res) viewContext.fillText('▶︎', 200+2+10, 50+2+5);
                     return;
                     break;
@@ -1723,7 +1732,7 @@ function doScene(sceneData) {
         index++;
     }
     //必要なら表示のタイミングで音を出す
-    //sound();
+    sound('effect/sub_magic/water_5.wav');
 
     //あとはシーンイベントをAボタンで実行していく。
     //なくなったら、次のイベント
@@ -2590,8 +2599,15 @@ function doObjectEvents() {
                 break;
             }
             var nextCell = currrentMapObj[nextCellY][nextCellX];
+            //マップのデータ上から削除
             delete nextCell.object;
-            loadSpecialMapChips();
+            //マップの描画を削除
+            for(var i=0; i<mapObjects.length; i++) {
+                if (mapObjects[i][0]==nextCellX && mapObjects[i][1]==nextCellY) {
+                    mapObjects.splice(i,1);
+                }
+            }
+            
         break;
     } 
 }
@@ -2731,7 +2747,7 @@ function shake(type) {
         viewCanvas.classList.add("yokoburu");
         window.setTimeout(function(){
             viewCanvas.classList.remove("yokoburu");
-        }, 2000);//横揺れはちょっと長く
+        }, 1000);//横揺れはちょっと長く
 
     } else {
 
@@ -2805,7 +2821,7 @@ function doBattle(battleData) {
     battleFlg = true;
     //バトル開始アニメーション
     showBattleStartAnimation();
-    sound('bgm/分類無し効果音/キャンセル1.mp3');
+    sound('effect/sub_event/encount_3.wav');
     //バトル画面を表示する（遅延表示）
     setTimeout(function(){
         showBattleScreen(battleData);    
@@ -2910,7 +2926,7 @@ var chara6KOflg = false;
 function showBattleChara(index, enemyFlg, chrName, HP, chrImgName, damageEffectFlg=false) {
 
     if (damageEffectFlg) {
-        if (damageEffectCounter == 120) { //120は適当な数値
+        if (damageEffectCounter == 70) { //70は適当な数値
             //ダメージエフェクト中で、カウンターがマックスになったら終了
             damageEffectCounter = 0;
             var timerId = setTimeout(function() {
@@ -3116,7 +3132,7 @@ function doTransition(trasitionDataObj) {
     countFirstStep = true;
 
     //遷移専用の音を出す。
-    sound('bgm/分類無し効果音/決定、ボタン押下5.mp3');
+    sound('effect/sub_transition/stairs_1.wav');
 
     //マップ変更前にオブジェクトデータをリセット
     for (var i=0; i<mapObjects.length; i++) {
@@ -3375,7 +3391,7 @@ function showYesNo(targetAnswerIndex) {
 
     //前回と違う選択をした場合音を出す
     if (targetAnswer != targetAnswerIndex) {
-        sound('bgm/分類無し効果音/決定、ボタン押下3.mp3');
+        sound('effect/sub_system/select_4.mp3');
     }
 
     //カーソル描画、上下とAボタンではいいいえを選択し、結果を返す
@@ -3546,10 +3562,10 @@ function showTalkContents() {
 
     //音を出す。
     if (soundToolFlg) {
-        sound('bgm/分類無し効果音/決定、ボタン押下5.mp3');
+        sound('effect/sub_event/get_3.wav');
         soundToolFlg = false;
     } else {
-        sound('bgm/分類無し効果音/決定、ボタン押下35.mp3');
+        sound('effect/sub_system/select_4.mp3');
     }
 }
 
