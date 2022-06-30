@@ -1219,7 +1219,16 @@ var mapObjectsMove = [];
 var maxOrderNUm = 0;
 var targetChips = [];
 var tmpCount = 1;
+var startSoundFlg = true; //一回ならしたらfalseにする
 function doMove(moveData) {
+
+    //まずは開始サウンドを鳴らす
+    if (startSoundFlg) {
+        if (moveData['startSound'] != "") {
+            sound(moveData['startSound']);
+        }
+        startSoundFlg = false;
+    }
 
     //ここで情報を受け取っておく
     //イベントキー
@@ -1231,6 +1240,7 @@ function doMove(moveData) {
     //     スライドフラグ
     //     固定向き
     //　　　追加オブジェクト（ないかもしれない）
+    //　　　移動後サウンド
     //　移動スピード
 
     // drawSpeed = 9 遅い;　drawSpeed = ６　中くらい　;drawSpeed = ３　速い;
@@ -1272,7 +1282,12 @@ function doMove(moveData) {
             //newMoveObj
             if (chipData.hasOwnProperty('newMoveObj')) {
                 target.push(chipData['newMoveObj']);
+            } else {
+                target.push(null);
             }
+
+            //finishSound
+            target.push(chipData['finishSound']);
 
             targetChips.push(target);
 
@@ -1315,6 +1330,7 @@ function doMove(moveData) {
                     // [7]スライドフラグ
                     // [8]固定向き
                     // [9]オブジェクトネーム
+                    // [10]移動後サウンド
                     var aryData = [
                         Number(targetChips[j] [0 ])
                         , Number(targetChips[j][1])
@@ -1326,6 +1342,7 @@ function doMove(moveData) {
                         , targetChips[j][4]
                         , targetChips[j][5]
                         , targetChips[j][6]['objName']
+                        , targetChips[j][7]
                     ];
                     mapObjectsMove.push(aryData.concat());
 
@@ -1355,6 +1372,7 @@ function doMove(moveData) {
                         , targetChips[j][4]
                         , targetChips[j][5]
                         , targetChips[j][6]['objName']
+                        , targetChips[j][7]
                     ];
                     mapObjectsMove.push(aryData.concat());
 
@@ -1389,6 +1407,7 @@ function doMove(moveData) {
         var slideFlg = false;
         var fixDir = '';
         var objName;
+        var finSound;
         //まずは無条件で、mapObjectsMoveにデータコピー
         mapObjectsMove[i] = mapObjects[i].concat(); //concatで空の配列を繋げて新しい配列にしないと参照渡しになる。
         //ターゲットチップとかぶるキャラオブジェクトだった場合、移動対象のキャラオブジェクトなので
@@ -1402,6 +1421,7 @@ function doMove(moveData) {
                 slideFlg = targetChips[j][4]; //スライドフラグ
                 fixDir = targetChips[j][5]; //固定向き
                 objName = mapObjects[i][9] //オブジェクトタイプ
+                finSound = targetChips[j][7] //移動後サウンド
                 //オブジェクト情報はこの時点で削除する
                 //データ範囲分実施
                 var ylength = currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object']['yCells'];
@@ -1421,6 +1441,7 @@ function doMove(moveData) {
             mapObjectsMove[i][7] = slideFlg; //スライドフラグ
             mapObjectsMove[i][8] = fixDir; //固定向き
             mapObjectsMove[i][9] = objName; //オブジェクトタイプ（character/tool)
+            mapObjectsMove[i][10] = finSound; //移動後サウンド
         } else {
             //mapObjectsMove[i][4] = false;
         }
@@ -1448,6 +1469,7 @@ var movePxY = []; //同上
 var scrollPosOfObj = 0;
 var sideSwitchFlgOfObj = true;
 function drawObjectsWithMove() {
+
     for (var i=0; i<mapObjectsMove.length; i++) {
 
         if (mapObjectsMove[i][4] != null) {
@@ -1608,6 +1630,15 @@ function drawObjectsWithMove() {
         if ((moveCounter == mapTipLength-1) && (tmp2 != 4)){
             //ムーブチップだった場合
             if (mapObjectsMove[i][4] != null) { //null or targetIndex
+
+                // 次のインデックスのオーダーがない場合で、移動後サウンドがある場合はサウンドを鳴らす
+                if (targetChips[targetIndex][2][orderIndex+1] == undefined) {
+                    //サウンドを鳴らす
+                    if (mapObjectsMove[i][10] != "") {
+                        sound(mapObjectsMove[i][10]);
+                    }
+                }
+
                 // 次のインデックスのオーダーがなくて、かつ削除フラグがあった場合
                 if (targetChips[targetIndex][2][orderIndex+1] == undefined && mapObjectsMove[i][5] == true){
 
@@ -1699,6 +1730,8 @@ function drawObjectsWithMove() {
         targetChips = [];
         movePxX = [];
         movePxY = [];
+
+        startSoundFlg = true;
 
         //完了フラグはdraw()の途中で使われているよ
         //そこで次のイベントがあれば呼び出し
