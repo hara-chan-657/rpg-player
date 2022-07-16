@@ -136,6 +136,8 @@ var toolFlg = false;
 var haveTools = [];
 //リアクション画像配列
 var reactionImgArray = [];
+//フラッシュアニメーション画像配列
+var flashAnimationImgArray = [];
 //道具ゲット時サウンドフラグ
 var soundToolFlg = false;
 
@@ -298,6 +300,7 @@ function drawCanvas() {
     drawMapRepeat(); //繰り返しマップの描画
     drawTurnChip(); //マップ交互の描画
     drawMoveObjFlg ? drawObjectsWithMove() : drawObjects();//オブジェクトの描画（キャラクター/ツール）
+    if (drawAnimationFlg) drawAnimationLoop();
     drawMainCharacterAndFollowCharacter(); //メインキャラとフォローキャラの描画
 }
 
@@ -867,7 +870,9 @@ function keyDownHandler(evt) {
                             doObjectEvents();
                         }
                     } else {
+                        effectFlg = false; //フラグはここで戻す
                         eventIndex = 0;
+                        if (drawFlg) return; //描画中の場合はここでストップ（再描画で加速しない様に）
                         drawFlg = true;
                         draw(); //再描画開始
                     }
@@ -1132,6 +1137,143 @@ function drawTurnChip() {
 
     }
     if (mapTurn.length != 0) doing2++; //マップターンが0の場合、無限に増えていくのを防ぐためにこういう風に書いている。
+}
+
+
+//アニメーション描画
+//アニメーションフラグをonにして使うこと
+//draw()中であることが前提
+
+//メモ：発動は即座に発動（若干のタイムラグはsetTimeoutで入れてもいいかも）
+//　　　発動後は待機モード、Aボタンで次のイベント発動
+
+var doing3 = 0;
+var animationLoopTime = 200; //適当な数字
+var drawAnimationFlg = false;
+
+function drawAnimation() {
+    var soundPath = "";
+    var shakeType = "";
+    soundPath = globalEffectData['sound'];
+    shakeType = globalEffectData['shakeType'];
+    //sound
+    if (soundPath != "") sound(soundPath);
+    //shakeType
+    if (shakeType != "") shake(shakeType);
+
+    if (!drawFlg) {
+        drawFlg = true;
+        draw();
+    }
+}
+
+function drawAnimationLoop() {
+
+    //アニメタイプと、画像と、表示セル（複数可）と、揺れフラグと、サウンドを受け取る
+    //globalEffectDataからデータを取得する
+    var type = globalEffectData['animeType'];
+    if (type == 'object') {
+    //オブジェクトアニメーション
+        var imageName = globalEffectData['objectAnimeType'];
+        var imgNum = document.getElementsByClassName("turn_" + imageName).length;
+        var time = Math.floor(animationLoopTime/imgNum); //6000/3 = 2000　みたいなことを想定 
+        var cellsKey = Object.keys(globalEffectData['animationCells']);
+        var cells = [];
+        for (var i=0; i<cellsKey.length; i++) {
+            //セル情報を配列に詰め直す
+            cells[i] = [];
+            cells[i][0] = globalEffectData['animationCells'][i]['x'];
+            cells[i][1] = globalEffectData['animationCells'][i]['y'];
+        }
+
+        drawObjectAnimation(imageName, imgNum, cells, time);
+    } else {
+    //フラッシュアニメーション
+    //オブジェクトアニメーションはできた、フラッシュアニメーションを歓声させて歓声
+        var imageName = globalEffectData['flashAnimeType']; //キラキラとかダメージとか
+        var cellsKey = Object.keys(globalEffectData['animationCells']);
+        var cells = [];
+        for (var i=0; i<cellsKey.length; i++) {
+            //セル情報を配列に詰め直す
+            cells[i] = [];
+            cells[i][0] = globalEffectData['animationCells'][i]['x'];
+            cells[i][1] = globalEffectData['animationCells'][i]['y'];
+        }
+
+        drawFlashAnimation(imageName, cells);
+    }
+    //このタイミングでAボタン待ちにする。Aボタンで次のイベントを実行できる
+
+}
+
+function drawObjectAnimation(imageName, imgNum, cells, time) {
+    // mapTurn => x, y, time, name
+    for (var i=0; i<imgNum; i++) {
+
+        if (doing3 == animationLoopTime-10) { // 999 / 333 = 3 (ほんとはマックスのインデックスは2であるべきなのに)のケースを防ぐため、-1
+            //オブジェクトアニメーション終了、戻す
+            doing3 = 0;
+            drawAnimationFlg = false;
+            globalEffectData = null;
+            //イベント終了だったら（オブジェクトアニメーション特有の分岐、普通はkeyEventHandlerでやるべきこと）
+            if (eventIndex+1 == events.length) {
+                effectFlg = false; //フラグはここで戻す
+                eventIndex = 0;
+                console.log("最後のイベント：オブジェクトアニメーション終了、動き始めれます。");
+            }
+            return;
+        }
+
+        //画像インデックス
+        var index = Math.floor(doing3/time);
+        var tmp = document.getElementById(imageName+"_"+index);
+        if (!tmp) {
+            console.log(tmp);
+        }
+        for (var i=0; i<cells.length; i++) {
+            //現在のインデックスの画像を各セルに描画する
+            viewContext.drawImage(tmp, cells[i][0]*mapTipLength+(viewCanvasHalfWidth-mainCharaPosX), cells[i][1]*mapTipLength+(viewCanvasHalfHeight-mainCharaPosY));
+        }
+
+    }
+    if (imgNum != 0) doing3++; //imgNumが0の場合、無限に増えていくのを防ぐためにこういう風に書いている。
+}
+
+var doing4 = 0;
+function drawFlashAnimation(imageName, cells) {
+
+    if (doing4 == animationLoopTime-70) { //-xxは適当な微調整
+        //フラッシュアニメーション終了、戻す
+        doing4 = 0;
+        drawAnimationFlg = false;
+        globalEffectData = null;
+
+        //イベント終了だったら（フラッシュアニメーション特有の分岐、普通はkeyEventHandlerでやるべきこと）
+        if (eventIndex+1 == events.length) {
+            effectFlg = false; //フラグはここで戻す
+            eventIndex = 0;
+            console.log("最後のイベント：フラッシュアニメーション終了、動き始めれます。");
+        }
+
+        return;
+    }
+    var tmp;
+    switch(imageName) {
+        case 'ダメージ':
+            tmp = flashAnimationImgArray[0];
+        break;
+        case 'キラキラ':
+        break;
+    }
+
+    if (Math.floor(doing4/10)%2 == 0) {
+        for (var i=0; i<cells.length; i++) {
+            //現在のインデックスの画像を各セルに描画する
+            viewContext.drawImage(tmp, cells[i][0]*mapTipLength+(viewCanvasHalfWidth-mainCharaPosX), cells[i][1]*mapTipLength+(viewCanvasHalfHeight-mainCharaPosY));
+        }
+    }
+
+    doing4++;    
 }
 
 //オブジェクトを描画する
@@ -1919,7 +2061,7 @@ function loadImages() {
     mainCharaImg = mainCharaImgArray[0];
 
     //リアクション表示用画像
-    reactionArray = [
+    var reactionArray = [
         '/rpg-player/public/image/bikkuri.png',
         '/rpg-player/public/image/heart.png',
         '/rpg-player/public/image/ikari.png',
@@ -1929,6 +2071,16 @@ function loadImages() {
         var imgObj = new Image();
         imgObj.src = reactionArray[i];
         reactionImgArray.push(imgObj);
+    }
+
+    //リアクション表示用画像
+    var flashAnimationArray = [
+        '/rpg-player/public/image/damage.png',
+    ]
+    for (var i=0; i<flashAnimationArray.length; i++) {
+        var imgObj = new Image();
+        imgObj.src = flashAnimationArray[i];
+        flashAnimationImgArray.push(imgObj);
     }
 }
 
@@ -2709,6 +2861,7 @@ function doEvents() {
 
 
 var effectFlg = false;
+var globalEffectData = null;
 //エフェクト実行
 function doEffect(effectData) {
     switch(effectData['type']){
@@ -2724,6 +2877,15 @@ function doEffect(effectData) {
             var soundPath = effectData['sound'];
             //音源場所から、持ってきてならす（既存サンプル参考に）
             sound(soundPath);
+
+            //イベント終了だったら（シェイクアニメーション特有の分岐、普通はkeyEventHandlerでやるべきこと）
+            if (eventIndex+1 == events.length) {
+                effectFlg = false; //フラグはここで戻す
+                eventIndex = 0;
+                console.log("最後のイベント：シェイクアニメーション終了、動き始めれます。");
+                drawFlg = true;
+                draw();
+            }
 
         break;
         case 'reaction':
@@ -2760,6 +2922,11 @@ function doEffect(effectData) {
 
         break;
         case 'animation':
+            effectFlg = true;
+            globalEffectData = effectData;
+            drawAnimationFlg = true;
+            drawAnimation();
+
         break;
 
     }
