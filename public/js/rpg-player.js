@@ -301,7 +301,7 @@ function drawCanvas() {
     drawTurnChip(); //マップ交互の描画
     drawMoveObjFlg ? drawObjectsWithMove() : drawObjects();//オブジェクトの描画（キャラクター/ツール）
     if (drawAnimationFlg) drawAnimationLoop();
-    drawMainCharacterAndFollowCharacter(); //メインキャラとフォローキャラの描画
+    if (!hideMainCharaFlg) drawMainCharacterAndFollowCharacter(); //メインキャラとフォローキャラの描画
 }
 
 function keyUpHandler(evt) {
@@ -4016,6 +4016,16 @@ function openProjectsContainerDiv() {
     document.getElementById("projectsContainer").style.display = 'block';
 }
 
+var hideMainCharaFlg = false;
+function hideMainChara() {
+    if (!hideMainCharaFlg) {
+        hideMainCharaFlg = true;
+        document.getElementById("hideMainChara").style.backgroundColor = 'red';
+    } else {
+        hideMainCharaFlg = false;
+        document.getElementById("hideMainChara").style.backgroundColor = '';
+    }
+}
 
 
 
