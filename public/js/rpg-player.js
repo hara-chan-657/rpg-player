@@ -178,7 +178,8 @@ function setDefault() {
 
 
 //マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に5ミリ秒毎に動き続ける。
-var drawSpeed = 5; //描画スピード
+var drawSpeedToChange = 5;
+var drawSpeed = drawSpeedToChange; //描画スピード
 function draw() {
 
     //トランジションの時はふんわり
@@ -238,7 +239,7 @@ function draw() {
 
     if (finishDrawMoveFlg) {
 
-        drawSpeed = 5;
+        drawSpeed = drawSpeedToChange;
 
         //次のイベントがあれば次のイベント
         finishDrawMoveFlg = false;
@@ -946,15 +947,14 @@ function keyDownHandler(evt) {
                     break;
 
                 case 69: //Eボタン
-
-                    viewContext.fillStyle = 'red';
-                    viewContext.fillRect(128, 25, 480, 320-32); //★これで（dot-editorの方は、480×288で画像を作成）
-                    //会話ウィンドウを黒でクリア
-                    viewContext.fillStyle = 'white';
-                    viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
-
-
-                    doTalk("test", "20210321121928_H96_W96_Nppp.png");
+                    var timerId = setTimeout("draw()", drawSpeed);
+                    clearTimeout(timerId);
+                    if (drawSpeedToChange == 5) {
+                        drawSpeedToChange = 2;
+                    } else if (drawSpeedToChange == 2) {
+                        drawSpeedToChange = 5;
+                    }
+                    drawSpeed = drawSpeedToChange;
     
                 default:
                     //上記以外のキーは受け付けない
@@ -969,7 +969,7 @@ function keyDownHandler(evt) {
                 enterFlg = false;
             }
         }
-    }   
+    }
 }
 
 function sound(soundPath='') {
