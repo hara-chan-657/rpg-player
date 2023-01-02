@@ -74,6 +74,10 @@ class RpgPlayerController extends Controller
                             'rr' => '7',//7
                             'l' => '8', //8
                             'll' => '9',//9
+                            'ru' => '11', //11
+                            'rd' => '12',//12
+                            'lu' => '13', //13
+                            'ld' => '14',//14
                             'ot' => '10',//10
                         );
                         $objCharas[$charaBaseName][$i]['path'] = $objChara;

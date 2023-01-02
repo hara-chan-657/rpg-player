@@ -1298,6 +1298,7 @@ function drawObjects() {
         // [7]スライドフラグ
         // [8]固定向き
         // [9]オブジェクトネーム
+        // [10]横倒し向き
         // var defaultObjData = [Number(l), Number(k), currrentMapObj[k][l]['object']['charaName'], 0, null, false, null, false, '', 'chara']; 
         if (mapObjects[i][9] == "character") {
         // キャラオブジェクト
@@ -1322,6 +1323,26 @@ function drawObjects() {
             //ディレクションはランダムで定期的に変える
             var tmp = Math.random();
             if (switchCountOfObj == 127 && tmp < 0.4) mapObjects[i][3] = Math.floor(tmp*10); //01234：上下左右をランダムで格納
+
+            //横倒しが設定がある場合はindexを上書きする
+            if (mapObjects[i][10] != null) {
+                switch (mapObjects[i][10]) { //ディレクション（ランダム）
+                    case 'ru':
+                        index = 11;
+                    break;
+                    case 'rd':
+                        index = 12;
+                    break;
+                    case 'lu':
+                        index = 13;
+                    break;
+                    case 'ld':
+                        index = 14;
+                    break;
+                    default :
+                    break;
+                }
+            }
 
             if (i != delObjIndex) {
                 //普通に描画する
@@ -2036,6 +2057,11 @@ function loadImages() {
         '/rpg-player/public/image/mainCharacterRight.png',
         '/rpg-player/public/image/mainCharacterLeft.png',
         '/rpg-player/public/image/mainCharacterLeft.png',
+        '/rpg-player/public/image/mainCharacterDown.png', //oterに該当するインデックスで使わないが横倒しのインデックスを全体で統一するために設定する
+        '/rpg-player/public/image/mainCharacterRight.png', //横倒し
+        '/rpg-player/public/image/mainCharacterRight.png', //横倒し
+        '/rpg-player/public/image/mainCharacterLeft.png', //横倒し
+        '/rpg-player/public/image/mainCharacterLeft.png', //横倒し
     ]
     for (var i=0; i<mainCharaArray.length; i++) {
         var imgObj = new Image();
@@ -2055,7 +2081,10 @@ function loadImages() {
             if (projectDataObj['mainChara']['rr'] != "") mainCharaImgArray[7] = document.getElementById(projectDataObj['mainChara']['name']+"_7"); //★ 右7 rr
             if (projectDataObj['mainChara']['l'] != "") mainCharaImgArray[8] = document.getElementById(projectDataObj['mainChara']['name']+"_8");   //★ 左8 l
             if (projectDataObj['mainChara']['ll'] != "") mainCharaImgArray[9] = document.getElementById(projectDataObj['mainChara']['name']+"_9"); //★ 左9 ll
-
+            if (projectDataObj['mainChara']['ru'] != "") mainCharaImgArray[11] = document.getElementById(projectDataObj['mainChara']['name']+"_11"); //★ 右仰向け ru
+            if (projectDataObj['mainChara']['rd'] != "") mainCharaImgArray[12] = document.getElementById(projectDataObj['mainChara']['name']+"_12"); //★ 右うつ伏せ rd
+            if (projectDataObj['mainChara']['lu'] != "") mainCharaImgArray[13] = document.getElementById(projectDataObj['mainChara']['name']+"_13"); //★ 左仰向け lu
+            if (projectDataObj['mainChara']['ld'] != "") mainCharaImgArray[14] = document.getElementById(projectDataObj['mainChara']['name']+"_14"); //★ 左うつ伏せ ld
     }
     //ロード時は下向きで表示
     mainCharaImg = mainCharaImgArray[0];
@@ -2117,6 +2146,11 @@ function drawMainCharacterAndFollowCharacter() {
     //scrollPos（32pxのカウント）のどっかのタイミングで、表示する画像を切り替える(方向ごとにケース分け)
     if (scrollState) {
     //移動中の時
+
+        //移動し始めのタイミングで必ず横倒し解除
+        mainCharaLayFlg = false;
+        mainCharaLayDirection = null;
+
         if (scrollPos == 1) {
         //一歩進んだ時、進んだ方向をフォローキャラが次に進む方向として取得（フォローして２歩目以降）
             if (!followFirstStep) {
@@ -2331,6 +2365,16 @@ function drawMainCharacterAndFollowCharacter() {
                 case 'up':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32); break;
                 case 'right':viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight); break;
                 case 'down': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32); break;
+            }
+        }
+
+        //横倒し状態の場合、mainCharaImgを更新
+        if (mainCharaLayFlg) {
+            switch (mainCharaLayDirection) {
+                case 'ru': mainCharaImg = mainCharaImgArray[11]; break;
+                case 'rd': mainCharaImg = mainCharaImgArray[12]; break;
+                case 'lu': mainCharaImg = mainCharaImgArray[13]; break;
+                case 'ld': mainCharaImg = mainCharaImgArray[14]; break;
             }
         }
 
@@ -2746,6 +2790,10 @@ function doObjectEvents() {
                     var delObjData =  maptipObj['events'][evtFullName];
                     doDeleteObject(delObjData);
                 break;
+                case 'layDown':
+                    var layDownData =  maptipObj['events'][evtFullName];
+                    doLayDown(layDownData);
+                break;
             }  
         break;
 
@@ -2855,6 +2903,10 @@ function doEvents() {
         case 'deleteObject':
             var delObjData =  maptipObj[evtFullName];
             doDeleteObject(delObjData);
+        break;
+        case 'layDown':
+            var layDownData =  maptipObj[evtFullName];
+            doLayDown(layDownData);
         break;
     }
 }
@@ -3446,8 +3498,8 @@ function loadSpecialMapChips() {
                 
                 switch (currrentMapObj[k][l]['object']['objName']) {
                     case 'character' :
-                        // x y キャラネーム ディレクション（0123:上下左右) ムーブフラグ デリートフラグ マップオブジェクト格納用 スライドフラグ 固定向き オブジェクトネーム
-                        var defaultObjData = [Number(l), Number(k), currrentMapObj[k][l]['object']['charaName'], 0, null, false, null, false, '', 'character']; 
+                        // x y キャラネーム ディレクション（0123:上下左右) ムーブフラグ デリートフラグ マップオブジェクト格納用 スライドフラグ 固定向き オブジェクトネーム 横倒し向き
+                        var defaultObjData = [Number(l), Number(k), currrentMapObj[k][l]['object']['charaName'], 0, null, false, null, false, '', 'character', null]; 
                         mapObjects.push(defaultObjData);
 
                         //キャラオブジェクトの場合、大きさの範囲分マップへデータコピーする
@@ -3723,6 +3775,82 @@ function doDeleteObject(delObjData) {
                 delObjIndex = i;
             }   
         }
+    }
+
+}
+
+//キャラを横倒しにする
+var mainCharaLayFlg = false;
+var mainCharaLayDirection = null;
+function doLayDown(layDownData) {
+
+    if (layDownData['targetType']=='charaObj') {
+    //キャラオブジェクト
+        //mapObjects毎、layDownChip毎にループして、[0][1]とXYの一致するやつの[10]に、afterDirectionを入れる
+
+        var hitChipLength = 0;
+
+        for (var i=0; i<mapObjects.length; i++) {
+            var chipIndex = 1;
+            while(layDownData.hasOwnProperty('chip_'+chipIndex)) {
+
+                orgChipLength++;
+
+                if (mapObjects[i][0]==layDownData['chip_'+chipIndex]['X'] && mapObjects[i][1]==layDownData['chip_'+chipIndex]['Y']) {
+                    if (layDownData['actionMode']=='layDown') {
+                    //横倒し
+                        mapObjects[i][10] = layDownData['afterDirection'];
+                    } else {
+                    //起き上がり
+                        mapObjects[i][10] = null;
+                    }
+
+                    hitChipLength++;
+
+                }
+                chipIndex++;
+            }
+        }
+
+        var orgChipLength = 0;
+        var chipIndex = 1;
+        while(layDownData.hasOwnProperty('chip_'+chipIndex)) {
+            orgChipLength++;
+            chipIndex++;
+        }
+
+        if (orgChipLength != hitChipLength){
+            alert('対象のオブジェクトがない設定が含まれています。');
+        }
+
+    } else {
+    //メインキャラ
+        if (layDownData['actionMode']=='layDown') {
+        //横倒し
+            mainCharaLayFlg = true;
+            mainCharaLayDirection = layDownData['afterDirection'];
+        } else {
+        //起き上がり
+            mainCharaLayFlg = false;
+            mainCharaLayDirection = null;
+        }
+
+    }
+
+    //サウンド
+    if (layDownData.hasOwnProperty('startSound')) sound(layDownData['startSound']);
+
+    //最後に横倒しの描画をする。それから次のイベントにいく。
+    drawCanvas();
+    if (eventIndex+1 != events.length) {
+        eventIndex++;
+        if(doingEvtType == 'map') {
+            doEvents();
+        } else {
+            doObjectEvents();
+        }
+    } else {
+        eventIndex = 0;
     }
 
 }
