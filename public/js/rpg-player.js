@@ -52,8 +52,6 @@ var followCharaImg;
 var mainCharaPosX;
 //メインキャラ現在位置Y
 var mainCharaPosY;
-//メインキャラ向き
-var mainCharaDir = 'down';
 //現在選択中マップ横
 var currentMapImgWidth;
 //現在選択中マップ縦
@@ -213,6 +211,22 @@ function draw() {
                     mainCharaPosX++;
                     break;
                 case 'down':   
+                    mainCharaPosY++;
+                    break;
+                case 'leftUp':
+                    mainCharaPosX--;
+                    mainCharaPosY--;
+                    break;
+                case 'leftDown':
+                    mainCharaPosX--;
+                    mainCharaPosY++;
+                    break;
+                case 'rightUp':
+                    mainCharaPosX++;
+                    mainCharaPosY--;
+                    break;
+                case 'rightDown':
+                    mainCharaPosX++;
                     mainCharaPosY++;
                     break;
             }
@@ -894,26 +908,42 @@ function keyDownHandler(evt) {
         } else {
             switch (evt.keyCode) {
                 case 37: //左
-                    scrollDir = 'left';
-                    mainCharaDir = scrollDir;
+                    var curCellY = mainCharaPosY/mapTipLength;
+                    var curCellX = mainCharaPosX/mapTipLength;
+                    var curPos = currrentMapObj[curCellY][curCellX];
+                    if (curPos.hasOwnProperty('diagonalWalkLeft')) {
+                        switch(curPos.diagonalWalkLeft) {
+                            case 'lu': scrollDir = 'leftUp';   break;
+                            case 'ld': scrollDir = 'leftDown'; break;
+                        }
+                    } else {
+                        scrollDir = 'left';
+                    }
                     mainCharaImg =  mainCharaImgArray[8];
                     break;
         
                 case 38: //上
                     scrollDir = 'up';
-                    mainCharaDir = scrollDir;
                     mainCharaImg =  mainCharaImgArray[3];
                     break;
         
                 case 39: //右
-                    scrollDir = 'right';
-                    mainCharaDir = scrollDir;
+                    var curCellY = mainCharaPosY/mapTipLength;
+                    var curCellX = mainCharaPosX/mapTipLength;
+                    var curPos = currrentMapObj[curCellY][curCellX];
+                    if (curPos.hasOwnProperty('diagonalWalkRight')) {
+                        switch(curPos.diagonalWalkRight) {
+                            case 'ru': scrollDir = 'rightUp';   break;
+                            case 'rd': scrollDir = 'rightDown'; break;
+                        }
+                    } else {
+                        scrollDir = 'right';
+                    }
                     mainCharaImg =  mainCharaImgArray[6];
                     break;
         
                 case 40: //下
                     scrollDir = 'down';
-                    mainCharaDir = scrollDir;
                     mainCharaImg =  mainCharaImgArray[0];
                     break;
                 
@@ -1643,6 +1673,22 @@ function drawObjectsWithMove() {
             if (targetChips[targetIndex][2][orderIndex] == 1)  movePxY[i] -= 1; //up
             if (targetChips[targetIndex][2][orderIndex] == 2)  movePxX[i] += 1; //right
             if (targetChips[targetIndex][2][orderIndex] == 3)  movePxX[i] -= 1; //left
+            if (targetChips[targetIndex][2][orderIndex] == 5) {//lu
+                movePxX[i] -= 1;
+                movePxY[i] -= 1;
+            }
+            if (targetChips[targetIndex][2][orderIndex] == 6) {//ru
+                movePxX[i] += 1;
+                movePxY[i] -= 1;
+            }
+            if (targetChips[targetIndex][2][orderIndex] == 7) {//rd
+                movePxX[i] += 1;
+                movePxY[i] += 1;
+            }
+            if (targetChips[targetIndex][2][orderIndex] == 8) {//ld
+                movePxX[i] -= 1;
+                movePxY[i] += 1;
+            }
         }
 
         if (mapObjectsMove[i][9]=="character") {
@@ -1652,6 +1698,17 @@ function drawObjectsWithMove() {
             // 通常チップだった場合　　：通常のディレクションを使用（イベント発生直前の向きで固定される）
             // ムーブのチップだった場合：現在のorderIndexのディレクションを使用（歩く方向に向けたいから）
             var tmp = mapObjectsMove[i][4]==null ? mapObjectsMove[i][3] : targetChips[targetIndex][2][orderIndex];
+            //斜め方向のインデックスの場合、左右どちらかの画像に差し替える
+            switch(tmp) {
+                case 5:
+                case 8:
+                    tmp = 3;//左
+                break;
+                case 6:
+                case 7:
+                    tmp = 2;//右
+                break;
+            }
             var tmp2 = 999;
             if (orderIndex != 0) tmp2 = tmp; //これはただの待避用
             if (tmp == 4) {//停止orderだったら
@@ -1818,6 +1875,22 @@ function drawObjectsWithMove() {
                     if (targetChips[targetIndex][2][orderIndex] == 1)  mapObjectsMove[i][1] = mapObjectsMove[i][1]-1; //up
                     if (targetChips[targetIndex][2][orderIndex] == 2)  mapObjectsMove[i][0] = mapObjectsMove[i][0]+1; //right
                     if (targetChips[targetIndex][2][orderIndex] == 3)  mapObjectsMove[i][0] = mapObjectsMove[i][0]-1; //left
+                    if (targetChips[targetIndex][2][orderIndex] == 5) {//lu
+                        mapObjectsMove[i][0] = mapObjectsMove[i][0]-1; //left
+                        mapObjectsMove[i][1] = mapObjectsMove[i][1]-1; //up
+                    }
+                    if (targetChips[targetIndex][2][orderIndex] == 6) {//ru
+                        mapObjectsMove[i][0] = mapObjectsMove[i][0]+1; //right
+                        mapObjectsMove[i][1] = mapObjectsMove[i][1]-1; //up
+                    }
+                    if (targetChips[targetIndex][2][orderIndex] == 7) {//rd
+                        mapObjectsMove[i][0] = mapObjectsMove[i][0]+1; //right
+                        mapObjectsMove[i][1] = mapObjectsMove[i][1]+1; //down
+                    }
+                    if (targetChips[targetIndex][2][orderIndex] == 8) {//ld
+                        mapObjectsMove[i][0] = mapObjectsMove[i][0]-1; //left
+                        mapObjectsMove[i][1] = mapObjectsMove[i][1]+1; //down
+                    }
 
                     // 元の方もこのタイミングでやっちゃう
                     mapObjects[i][0] = mapObjectsMove[i][0]; //x
@@ -1866,11 +1939,11 @@ function drawObjectsWithMove() {
 
                         //移動先範囲にオブジェクトがある場合、アラートを出す
                         if (currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)].hasOwnProperty('object')) {
-                            alert("移動先にオブジェクトがあるんでダメでーす（処理は止めません）");
+                            alert("オブジェクト移動先にオブジェクトがあるんでダメです重なっちゃいます（処理は止めません）");
                         }
 
                         if (k==0 && l==0) {
-                        //左上は、左上フラグとかの情報を追加する
+                        //オブジェクトの左上は、左上フラグとかの情報を追加する
                             currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object'] = mapObjectsMove[i][6];
                             currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object']['leftTop'] = true;
                             currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object']['xCells'] = xlength;
@@ -2159,7 +2232,9 @@ function drawMainCharacterAndFollowCharacter() {
             tmpScrollDir = scrollDir; //1pxでも進んだ時、進んだ方向をフォローキャラが進む方法として取得
         }
         switch (scrollDir) {
-            case 'left': 
+            case 'left':
+            case 'leftUp':
+            case 'leftDown':
                 if (scrollPos <  16) {
                     mainCharaImg = mainCharaImgArray[9];
                     followCharaImg = followCharaImgArray[9];
@@ -2192,6 +2267,8 @@ function drawMainCharacterAndFollowCharacter() {
                 } 
             break;
             case 'right':
+            case 'rightUp':
+            case 'rightDown':
                 if (scrollPos <  16) {
                     mainCharaImg = mainCharaImgArray[7];
                     followCharaImg = followCharaImgArray[7];
@@ -2226,7 +2303,9 @@ function drawMainCharacterAndFollowCharacter() {
         }
         if (!followFirstStep) { //2歩目移行の時
             switch (nextFollowDir) {
-                case 'left': 
+                case 'left':
+                case 'leftUp':
+                case 'leftDown':
                     if (scrollPos <  16) {
                         followCharaImg = followCharaImgArray[9];
                     }
@@ -2253,6 +2332,8 @@ function drawMainCharacterAndFollowCharacter() {
                     } 
                 break;
                 case 'right':
+                case 'rightUp':
+                case 'rightDown':
                     if (scrollPos <  16) {
                         followCharaImg = followCharaImgArray[7];
                     }
@@ -2299,6 +2380,10 @@ function drawMainCharacterAndFollowCharacter() {
                     case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+scrollPos); break;
                     case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight); break; 
                     case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-scrollPos); break;
+                    case 'leftUp':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight+scrollPos); break;
+                    case 'leftDown':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight-scrollPos); break;
+                    case 'rightUp': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight+scrollPos); break; 
+                    case 'rightDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight-scrollPos); break;
                 }
             } else {
                 //一歩うごいたあと。メインキャラの後ろに描画
@@ -2310,6 +2395,10 @@ function drawMainCharacterAndFollowCharacter() {
                             case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight+scrollPos); break;
                             case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight); break;
                             case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight-scrollPos); break;
+                            case 'leftUp':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight+scrollPos); break;
+                            case 'leftDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight-scrollPos); break;
+                            case 'rightUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight+scrollPos); break;
+                            case 'rightDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight-scrollPos); break;
                         }
                     break;
                     case 'up':
@@ -2318,6 +2407,10 @@ function drawMainCharacterAndFollowCharacter() {
                             case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32); break;
                             case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight+32-scrollPos); break;
                             case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                            case 'leftUp':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight+32); break;
+                            case 'leftDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                            case 'rightUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight+32); break;
+                            case 'rightDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight+32-(scrollPos*2)); break;
                         }
                     break;
                     case 'right':
@@ -2326,6 +2419,10 @@ function drawMainCharacterAndFollowCharacter() {
                             case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+scrollPos,viewCanvasHalfHeight+scrollPos); break;
                             case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight); break;
                             case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+scrollPos,viewCanvasHalfHeight-scrollPos); break;
+                            case 'leftUp':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight+scrollPos); break;
+                            case 'leftDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight-scrollPos); break;
+                            case 'rightUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight+scrollPos); break;
+                            case 'rightDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight-scrollPos); break;
                         }
                     break;
                     case 'down':
@@ -2334,6 +2431,58 @@ function drawMainCharacterAndFollowCharacter() {
                             case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32+(scrollPos*2));  break;
                             case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight-32+scrollPos); break;
                             case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32); break;
+                            case 'leftUp':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight-32+(scrollPos*2)); break;
+                            case 'leftDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+scrollPos,viewCanvasHalfHeight-32); break;
+                            case 'rightUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight-32+(scrollPos*2)); break;
+                            case 'rightDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-scrollPos,viewCanvasHalfHeight-32); break;
+                        }
+                    break;
+                    case 'leftUp':
+                        switch(scrollDir) {
+                            case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight+32-scrollPos); break;
+                            case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight+32); break;
+                            case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight+32-scrollPos); break;
+                            case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                            case 'leftUp':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight+32); break;
+                            case 'leftDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                            case 'rightUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight+32); break;
+                            case 'rightDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                        }
+                    break;
+                    case 'leftDown':
+                        switch(scrollDir) {
+                            case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight-32+scrollPos); break;
+                            case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight-32+(scrollPos*2)); break;
+                            case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight-32+scrollPos); break;
+                            case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight-32); break;
+                            case 'leftUp':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight-32+(scrollPos*2)); break;
+                            case 'leftDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight-32); break;
+                            case 'rightUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-(scrollPos*2),viewCanvasHalfHeight-32+(scrollPos*2)); break;
+                            case 'rightDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32-scrollPos,viewCanvasHalfHeight-32); break;
+                        }
+                    break;
+                    case 'rightUp':
+                        switch(scrollDir) {
+                            case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight+32); break;
+                            case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+scrollPos,viewCanvasHalfHeight+32); break;
+                            case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight+32-scrollPos); break;
+                            case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+scrollPos,viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                            case 'leftUp':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight+32); break;
+                            case 'leftDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                            case 'rightUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight+32); break;
+                            case 'rightDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight+32-(scrollPos*2)); break;
+                        }
+                    break;
+                    case 'rightDown':
+                        switch(scrollDir) {
+                            case 'left':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight-32+scrollPos); break;
+                            case 'up':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+scrollPos,viewCanvasHalfHeight-32+(scrollPos*2)); break;
+                            case 'right': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight-32+scrollPos); break;
+                            case 'down':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+scrollPos,viewCanvasHalfHeight-32); break;
+                            case 'leftUp':    viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight-32+(scrollPos*2)); break;
+                            case 'leftDown':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32+(scrollPos*2),viewCanvasHalfHeight-32); break;
+                            case 'rightUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight-32+(scrollPos*2)); break;
+                            case 'rightDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight-32); break;
                         }
                     break;
                 }
@@ -2345,18 +2494,46 @@ function drawMainCharacterAndFollowCharacter() {
     } else {
     //移動中じゃない時
         switch (scrollDir) {
-            case 'left': switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[9]:mainCharaImg = mainCharaImgArray[8]; break;
-            case 'up':   switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[5]:mainCharaImg = mainCharaImgArray[4]; break;
-            case 'right':switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[7]:mainCharaImg = mainCharaImgArray[6]; break;
-            case 'down': switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1]; break;
-            default :    switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1]; break;
+            case 'left':
+            case 'leftUp':
+            case 'leftDown':
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[9]:mainCharaImg = mainCharaImgArray[8];
+            break;
+            case 'up':
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[5]:mainCharaImg = mainCharaImgArray[4];
+            break;
+            case 'right':
+            case 'rightUp':
+            case 'rightDown':
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[7]:mainCharaImg = mainCharaImgArray[6];
+            break;
+            case 'down':
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
+            break;
+            default :
+                switchCountOfMain < 64 ? mainCharaImg = mainCharaImgArray[2]:mainCharaImg = mainCharaImgArray[1];
+            break;
         }
         switch (tmpScrollDir) {
-            case 'left': switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[9]:followCharaImg = followCharaImgArray[8]; break;
-            case 'up':   switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[5]:followCharaImg = followCharaImgArray[4]; break;
-            case 'right':switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[7]:followCharaImg = followCharaImgArray[6]; break;
-            case 'down': switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1]; break;
-            default :    switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1]; break;
+            case 'left':
+            case 'leftUp':
+            case 'leftDown':
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[9]:followCharaImg = followCharaImgArray[8];
+            break;
+            case 'up':
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[5]:followCharaImg = followCharaImgArray[4];
+            break;
+            case 'right':
+            case 'rightUp':
+            case 'rightDown':
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[7]:followCharaImg = followCharaImgArray[6];
+            break;
+            case 'down':
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1];
+            break;
+            default :
+                switchCountOfMain < 64 ? followCharaImg = followCharaImgArray[2]:followCharaImg = followCharaImgArray[1];
+            break;
         }
 
         if (followFlg && !followFirstStep) {
@@ -2365,6 +2542,10 @@ function drawMainCharacterAndFollowCharacter() {
                 case 'up':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight+32); break;
                 case 'right':viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight); break;
                 case 'down': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth,viewCanvasHalfHeight-32); break;
+                case 'leftUp':   viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight+32); break;
+                case 'leftDown': viewContext.drawImage(followCharaImg,viewCanvasHalfWidth+32,viewCanvasHalfHeight-32); break;
+                case 'rightUp':  viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight+32); break;
+                case 'rightDown':viewContext.drawImage(followCharaImg,viewCanvasHalfWidth-32,viewCanvasHalfHeight-32); break;
             }
         }
 
@@ -2574,6 +2755,62 @@ function checkStartMoveEvent() {
                 if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
             }
             break;
+        case 'leftUp':
+            //マップ外でないかチェック
+            if (mainCharaPosX == 0) return false;
+            if (mainCharaPosY == 0) return false;
+            //通りぬけかどうかチェック
+            var nextCellY = mainCharaPosY/mapTipLength-1;
+            var nextCellX = mainCharaPosX/mapTipLength-1;
+            var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
+            if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
+                if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('turnChip')) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
+            }
+            break;
+        case 'leftDown':
+            //マップ外でないかチェック
+            if (mainCharaPosX == 0) return false;
+            if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+            //通りぬけかどうかチェック
+            var nextCellY = mainCharaPosY/mapTipLength+1;
+            var nextCellX = mainCharaPosX/mapTipLength-1;
+            var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
+            if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
+                if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('turnChip')) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
+            }
+            break;
+        case 'rightUp':  
+            //マップ外でないかチェック 
+            if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+            if (mainCharaPosY == 0) return false;
+            //通りぬけかどうかチェック
+            var nextCellY = mainCharaPosY/mapTipLength-1;
+            var nextCellX = mainCharaPosX/mapTipLength+1;
+            var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
+            if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
+                if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('turnChip')) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
+            }
+            break;
+        case 'rightDown':  
+            //マップ外でないかチェック 
+            if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+            if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+            //通りぬけかどうかチェック
+            var nextCellY = mainCharaPosY/mapTipLength+1;
+            var nextCellX = mainCharaPosX/mapTipLength+1;
+            var maptiptype = currrentMapObj[nextCellY][nextCellX]['maptipType'];
+            if (currrentMapObj[nextCellY][nextCellX].hasOwnProperty('pass') == false) {
+                if ( maptiptype != 3) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('turnChip')) return false;
+                if ( currrentMapObj[nextCellY][nextCellX].hasOwnProperty('object')) return false;
+            }
+            break;
     }
     return true;
 }
@@ -2627,6 +2864,62 @@ function checkObject(direction) {
             //オブジェクトがあるかチェック
             var nextCellY = mainCharaPosY/mapTipLength+1;
             var nextCellX = mainCharaPosX/mapTipLength;
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            if(nextCell.hasOwnProperty('object')) {
+                return nextCell['object'];
+            } else {
+                return false;
+            }
+            break;
+        case 'leftUp':
+            //マップ外でないかチェック
+            if (mainCharaPosX == 0) return false;
+            if (mainCharaPosY == 0) return false;
+            //オブジェクトがあるかチェック
+            var nextCellY = mainCharaPosY/mapTipLength-1;
+            var nextCellX = mainCharaPosX/mapTipLength-1;
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            if(nextCell.hasOwnProperty('object')) {
+                return nextCell['object'];
+            } else {
+                return false;
+            }
+            break;
+        case 'leftDown':  
+            //マップ外でないかチェック 
+            if (mainCharaPosX == 0) return false;
+            if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+            //オブジェクトがあるかチェック
+            var nextCellY = mainCharaPosY/mapTipLength+1;
+            var nextCellX = mainCharaPosX/mapTipLength-1;
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            if(nextCell.hasOwnProperty('object')) {
+                return nextCell['object'];
+            } else {
+                return false;
+            }
+            break;
+        case 'rightUp':  
+            //マップ外でないかチェック 
+            if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+            if (mainCharaPosY == 0) return false;
+            //オブジェクトがあるかチェック
+            var nextCellY = mainCharaPosY/mapTipLength-1;
+            var nextCellX = mainCharaPosX/mapTipLength+1;
+            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            if(nextCell.hasOwnProperty('object')) {
+                return nextCell['object'];
+            } else {
+                return false;
+            }
+            break;
+        case 'rightDown':
+            //マップ外でないかチェック 
+            if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+            if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+            //オブジェクトがあるかチェック
+            var nextCellY = mainCharaPosY/mapTipLength+1;
+            var nextCellX = mainCharaPosX/mapTipLength+1;
             var nextCell = currrentMapObj[nextCellY][nextCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
@@ -2696,6 +2989,70 @@ function checkTrigger(trigger, direction) {
                     //トリガーAボタンどうかチェック
                     var nextCellY = mainCharaPosY/mapTipLength+1;
                     var nextCellX = mainCharaPosX/mapTipLength;
+                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    if(nextCell.hasOwnProperty('trigger')) {
+                        if(nextCell['trigger'] == 'Aボタン') {
+                            return nextCell['events'];
+                        }
+                    } else {
+                        return false;
+                    }
+                    break;
+                case 'leftUp':
+                    //マップ外でないかチェック
+                    if (mainCharaPosX == 0) return false;
+                    if (mainCharaPosY == 0) return false;
+                    //トリガーAボタンどうかチェック
+                    var nextCellY = mainCharaPosY/mapTipLength-1;
+                    var nextCellX = mainCharaPosX/mapTipLength-1;
+                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    if(nextCell.hasOwnProperty('trigger')) {
+                        if(nextCell['trigger'] == 'Aボタン') {
+                            return nextCell['events'];
+                        }
+                    } else {
+                        return false;
+                    }
+                    break;
+                case 'leftDown':
+                    //マップ外でないかチェック
+                    if (mainCharaPosX == 0) return false;
+                    if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+                    //トリガーAボタンどうかチェック
+                    var nextCellY = mainCharaPosY/mapTipLength+1;
+                    var nextCellX = mainCharaPosX/mapTipLength-1;
+                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    if(nextCell.hasOwnProperty('trigger')) {
+                        if(nextCell['trigger'] == 'Aボタン') {
+                            return nextCell['events'];
+                        }
+                    } else {
+                        return false;
+                    }
+                    break;
+                case 'rightUp':  
+                    //マップ外でないかチェック 
+                    if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+                    if (mainCharaPosY == 0) return false;
+                    //トリガーAボタンどうかチェック
+                    var nextCellY = mainCharaPosY/mapTipLength-1;
+                    var nextCellX = mainCharaPosX/mapTipLength+1;
+                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    if(nextCell.hasOwnProperty('trigger')) {
+                        if(nextCell['trigger'] == 'Aボタン') {
+                            return nextCell['events'];
+                        }
+                    } else {
+                        return false;
+                    }
+                    break;
+                case 'rightDown':  
+                    //マップ外でないかチェック 
+                    if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
+                    if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
+                    //トリガーAボタンどうかチェック
+                    var nextCellY = mainCharaPosY/mapTipLength+1;
+                    var nextCellX = mainCharaPosX/mapTipLength+1;
                     var nextCell = currrentMapObj[nextCellY][nextCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
@@ -2827,6 +3184,22 @@ function doObjectEvents() {
                 case 'down':
                     nextCellY = mainCharaPosY/mapTipLength+1;
                     nextCellX = mainCharaPosX/mapTipLength;
+                break;
+                case 'leftUp':
+                    nextCellY = mainCharaPosY/mapTipLength-1;
+                    nextCellX = mainCharaPosX/mapTipLength-1;
+                break;
+                case 'leftDown':
+                    nextCellY = mainCharaPosY/mapTipLength+1;
+                    nextCellX = mainCharaPosX/mapTipLength-1;
+                break;
+                case 'rightUp':
+                    nextCellY = mainCharaPosY/mapTipLength-1;
+                    nextCellX = mainCharaPosX/mapTipLength+1;
+                break;
+                case 'rightDown':
+                    nextCellY = mainCharaPosY/mapTipLength+1;
+                    nextCellX = mainCharaPosX/mapTipLength+1;
                 break;
                 default:
                 break;
@@ -4106,16 +4479,20 @@ function nextTalk() {
                     var KEvent = "";
                     switch (scrollDir) {
                         //scrollDirと逆の方向に一マス進む
-                        case 'left':   
+                        case 'left':
+                        case 'leftUp':
+                        case 'leftDown':
                             KEvent = new KeyboardEvent( "keydown", { keyCode: 39 });
                         break;
-                        case 'up':   
+                        case 'up':
                             KEvent = new KeyboardEvent( "keydown", { keyCode: 40 });
                         break;
-                        case 'right':   
+                        case 'right':
+                        case 'rightUp':
+                        case 'rightDown':
                             KEvent = new KeyboardEvent( "keydown", { keyCode: 37 });
                         break;
-                        case 'down':   
+                        case 'down':
                             KEvent = new KeyboardEvent( "keydown", { keyCode: 38 });
                         break;
                     }
