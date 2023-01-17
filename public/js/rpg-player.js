@@ -1146,7 +1146,7 @@ function drawMapRepeat() {
 
 //ターンチップを描画する
 var doing2 = 0;
-var loopTime = 500;
+var loopTime = 200;
 function drawTurnChip() {
     // mapTurn => x, y, time, name
     for (var i=0; i<mapTurn.length; i++) {
