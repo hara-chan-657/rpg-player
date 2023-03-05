@@ -3929,11 +3929,28 @@ function doTalk(talkContent, wipe = '') {
 
     //ワイプがあればワイプを表示
     if (wipe != '') {
+        //　ワイプの撤廃！ワイプを使いたかったらこっちのソースに戻す！
+        // //会話ウィンドウを黒でクリア
+        // viewContext.fillStyle = 'white';
+        // viewContext.fillRect(talkWinStartX, talkWinStartY-100, 100, 100);
+        // wipeImg = document.getElementById(wipe);
+        // viewContext.drawImage(wipeImg, talkWinStartX+2, talkWinStartY-100+2);
+        // //ワイプ名を表示
+        // var sPos = wipe.indexOf('_N')+2;
+        // var ePos = wipe.indexOf('.png');
+        // var nameRange = ePos - sPos;
+        // var wipeName = wipe.substr(sPos, nameRange);
+        // viewContext.font = talkFont; //文字の長さを測る前に文字の大きさを決定しないといけない
+        // var wipeNameLength = viewContext.measureText(wipeName);
+        // viewContext.fillStyle = 'white';
+        // viewContext.fillRect(talkWinStartX+100+2, talkWinStartY-35, wipeNameLength.width+6, 35);
+        // viewContext.fillStyle = 'black';
+        // viewContext.textBaseline = 'top';
+
+        // viewContext.fillText(wipeName, talkWinStartX+100+2+4, talkWinStartY-30);
+
+        // ワイプは表示せずにキャラ名だけ表示する
         //会話ウィンドウを黒でクリア
-        viewContext.fillStyle = 'white';
-        viewContext.fillRect(talkWinStartX, talkWinStartY-100, 100, 100);
-        wipeImg = document.getElementById(wipe);
-        viewContext.drawImage(wipeImg, talkWinStartX+2, talkWinStartY-100+2);
         //ワイプ名を表示
         var sPos = wipe.indexOf('_N')+2;
         var ePos = wipe.indexOf('.png');
@@ -3942,11 +3959,11 @@ function doTalk(talkContent, wipe = '') {
         viewContext.font = talkFont; //文字の長さを測る前に文字の大きさを決定しないといけない
         var wipeNameLength = viewContext.measureText(wipeName);
         viewContext.fillStyle = 'white';
-        viewContext.fillRect(talkWinStartX+100+2, talkWinStartY-35, wipeNameLength.width+6, 35);
+        viewContext.fillRect(talkWinStartX+2, talkWinStartY-35, wipeNameLength.width+6, 35);
         viewContext.fillStyle = 'black';
         viewContext.textBaseline = 'top';
 
-        viewContext.fillText(wipeName, talkWinStartX+100+2+4, talkWinStartY-30);
+        viewContext.fillText(wipeName, talkWinStartX+2+4, talkWinStartY-30);
     }
 
     //会話ウィンドウを黒でクリア
