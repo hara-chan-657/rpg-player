@@ -176,7 +176,7 @@ function setDefault() {
 
 
 //マップ描画イベント。会話中などでscrollStateがfalseの時以外、基本的に常に5ミリ秒毎に動き続ける。
-var drawSpeedToChange = 5;
+var drawSpeedToChange = 3;
 var drawSpeed = drawSpeedToChange; //描画スピード
 function draw() {
 
@@ -979,10 +979,10 @@ function keyDownHandler(evt) {
                 case 69: //Eボタン
                     var timerId = setTimeout("draw()", drawSpeed);
                     clearTimeout(timerId);
-                    if (drawSpeedToChange == 5) {
-                        drawSpeedToChange = 2;
-                    } else if (drawSpeedToChange == 2) {
-                        drawSpeedToChange = 5;
+                    if (drawSpeedToChange == 3) {
+                        drawSpeedToChange = 1;
+                    } else if (drawSpeedToChange == 1) {
+                        drawSpeedToChange = 3;
                     }
                     drawSpeed = drawSpeedToChange;
     
