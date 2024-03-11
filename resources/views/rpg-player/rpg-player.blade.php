@@ -153,17 +153,6 @@
             </div>
         @endforeach
         <p>■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■</p>
-        <img src="{{ asset('/image/mainCharacter_dummy.png') }}"/ id="dummy">
-        <img src="{{ asset('/image/l.png') }}" id="l">
-        <img src="{{ asset('/image/m.png') }}" id="m">
-        <img src="{{ asset('/image/r.png') }}" id="r">
-        <img src="{{ asset('/image/dr.png') }}" id="dr">
-        <img src="{{ asset('/image/drr.png') }}" id="drr">
-        <img src="{{ asset('/image/drl.png') }}" id="drl">
-        <img src="{{ asset('/image/dl.png') }}" id="dl">
-        <img src="{{ asset('/image/dlr.png') }}" id="dlr">
-        <img src="{{ asset('/image/dll.png') }}" id="dll">
-        <br>
         <img src="{{ asset('/image/battle_1.png') }}" id="battle_1"><br>
         <img src="{{ asset('/image/battle_2.png') }}" id="battle_2"><br>
         <img src="{{ asset('/image/battle_3.png') }}" id="battle_3"><br>
