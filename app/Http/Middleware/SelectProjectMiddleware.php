@@ -20,7 +20,8 @@ class SelectProjectMiddleware
         $excludes = array(
             '.',
             '..',
-            '.DS_Store'
+            '.DS_Store',
+            'common'
         );
         $projects = '<select id="oldProjectName" name="oldProjectName">';
         foreach ($dirs AS $dir) {
