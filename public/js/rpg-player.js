@@ -1819,7 +1819,13 @@ function drawObjectsWithMove() {
             if (mapObjectsMove[i][4] != null) {
                 viewContext.drawImage(document.getElementById(mapObjectsMove[i][2]+"_"+index), (mapObjectsMove[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX)+movePxX[i], (mapObjectsMove[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY)+movePxY[i]);                
             } else {
-                viewContext.drawImage(document.getElementById(mapObjectsMove[i][2]+"_"+index), (mapObjectsMove[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX),            (mapObjectsMove[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY)           );
+                try {
+                    viewContext.drawImage(document.getElementById(mapObjectsMove[i][2]+"_"+index), (mapObjectsMove[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX),            (mapObjectsMove[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY)           );
+                } catch(e) {
+                    //ムーブイベントの時、描画する何故か画像がロードできたりできなかったりする。できなくてもエラーにならない場合描画は続くので、一旦エラーは踏み潰す。。
+                    console.error( "エラー：", e.message );
+                }
+                
             }
 
         } else {
