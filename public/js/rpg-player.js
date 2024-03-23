@@ -4119,6 +4119,7 @@ function doFollow(followData) {
     }
 
     if (eventIndex+1 != events.length) {
+    //次のイベントがある場合
         eventIndex++;
         if(doingEvtType == 'map') {
             doEvents();
@@ -4126,7 +4127,12 @@ function doFollow(followData) {
             doObjectEvents();
         }
     } else {
+    //次のイベントがない場合
         eventIndex = 0;
+        if (!drawFlg) {
+            drawFlg = true;
+            draw();
+        }
     }
 
 }
