@@ -976,6 +976,12 @@ function keyDownHandler(evt) {
                     return;
                     break;
 
+                case 70: //Fボタン
+                    //主人公表示日表示
+                    hideMainChara();
+                    return;
+                    break;
+
                 case 69: //Eボタン
                     var timerId = setTimeout("draw()", drawSpeed);
                     clearTimeout(timerId);
@@ -985,6 +991,8 @@ function keyDownHandler(evt) {
                         drawSpeedToChange = 3;
                     }
                     drawSpeed = drawSpeedToChange;
+                    return;
+                    break;
     
                 default:
                     //上記以外のキーは受け付けない
