@@ -19,7 +19,7 @@ var mapRowNum = viewCanvasWidth/mapTipLength;
 //マップ列数
 var mapColNum = viewCanvasHeight/mapTipLength;
 //スクロール方向
-var scrollDir;
+var scrollDir = 'down';
 //スクロールフラグ
 var scrollState = false; 
 //スクロール位置(1pxずつ増やしていく)
@@ -954,16 +954,17 @@ function keyDownHandler(evt) {
                         maptipObj = res;
                         doingEvtType = 'obj';
                         doObjectEvents();
+                        return;
                     }                    
 
                     //トリガーAボタンのチェック
                     var res = checkTrigger('Aボタン', scrollDir);
                     if (res != false) {
                         maptipObj = res;
-                        doingEvtType = 'evt';
+                        doingEvtType = 'map';
                         doEvents();
+                        return;
                     }
-                    return;
                     break;
 
                 case 84: //Tボタン
@@ -2592,13 +2593,13 @@ function showHaveTools(index = -1) { //index：画面に表示する道具のイ
     //会話ウィンドウを黒でクリア
     viewContext.fillStyle = 'black';
     viewContext.fillRect(200, 50, 500, 270);
-    //会話ウィンドウを黒でクリア
+    //会話ウィンドウを白でクリア
     viewContext.fillStyle = 'white';
     viewContext.fillRect(200+2, 50+2, 500-4, 270-4);
 
     viewContext.fillStyle = 'black';
     viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
-    //会話ウィンドウを黒でクリア
+    //会話ウィンドウを白でクリア
     viewContext.fillStyle = 'white';
     viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
     //ここで手持ちの道具を表示するロジック
@@ -3944,7 +3945,7 @@ function doTalk(talkContent, wipe = '') {
     //ワイプがあればワイプを表示
     if (wipe != '') {
         //　ワイプの撤廃！ワイプを使いたかったらこっちのソースに戻す！
-        // //会話ウィンドウを黒でクリア
+        // //会話ウィンドウを白でクリア
         // viewContext.fillStyle = 'white';
         // viewContext.fillRect(talkWinStartX, talkWinStartY-100, 100, 100);
         // wipeImg = document.getElementById(wipe);
@@ -3964,7 +3965,6 @@ function doTalk(talkContent, wipe = '') {
         // viewContext.fillText(wipeName, talkWinStartX+100+2+4, talkWinStartY-30);
 
         // ワイプは表示せずにキャラ名だけ表示する
-        //会話ウィンドウを黒でクリア
         //ワイプ名を表示
         var sPos = wipe.indexOf('_N')+2;
         var ePos = wipe.indexOf('.png');
@@ -3972,8 +3972,10 @@ function doTalk(talkContent, wipe = '') {
         var wipeName = wipe.substr(sPos, nameRange);
         viewContext.font = talkFont; //文字の長さを測る前に文字の大きさを決定しないといけない
         var wipeNameLength = viewContext.measureText(wipeName);
+        viewContext.fillStyle = 'black';
+        viewContext.fillRect(talkWinStartX, talkWinStartY-35, wipeNameLength.width+6, 35);
         viewContext.fillStyle = 'white';
-        viewContext.fillRect(talkWinStartX+2, talkWinStartY-35, wipeNameLength.width+6, 35);
+        viewContext.fillRect(talkWinStartX+2, talkWinStartY-35+2, wipeNameLength.width+6-4, 35-4);
         viewContext.fillStyle = 'black';
         viewContext.textBaseline = 'top';
 
@@ -3983,7 +3985,7 @@ function doTalk(talkContent, wipe = '') {
     //会話ウィンドウを黒でクリア
     viewContext.fillStyle = 'black';
     viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
-    //会話ウィンドウを黒でクリア
+    //会話ウィンドウを白でクリア
     viewContext.fillStyle = 'white';
     viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
     //会話表示メタデータセット
@@ -4024,10 +4026,10 @@ function showYesNo(targetAnswerIndex) {
     //doTalk参考に背景表示実装
     //drawを止める
     drawFlg = false;
-    //会話ウィンドウを白でクリア
+    //会話ウィンドウを黒でクリア
     viewContext.fillStyle = 'black';
     viewContext.fillRect(questionWinStartX, questionWinStartY, questionWinWidth, questionWinHeight);
-    //会話ウィンドウを黒でクリア
+    //会話ウィンドウを白でクリア
     viewContext.fillStyle = 'white';
     viewContext.fillRect(questionWinStartX+2, questionWinStartY+2, questionWinWidth-4, questionWinHeight-4);
     //会話表示メタデータセット
@@ -4058,10 +4060,10 @@ function showYesNo(targetAnswerIndex) {
 
 function showBattleOptions() {
     selectBattleOptionFlg = true;
-    //会話ウィンドウを白でクリア
+    //会話ウィンドウを黒でクリア
     viewContext.fillStyle = 'black';
     viewContext.fillRect(talkWinStartX, talkWinStartY, talkWinWidth, talkWinHeight);
-    //会話ウィンドウを黒でクリア
+    //会話ウィンドウを白でクリア
     viewContext.fillStyle = 'white';
     viewContext.fillRect(talkWinStartX+2, talkWinStartY+2, talkWinWidth-4, talkWinHeight-4);
     //会話表示メタデータセット
