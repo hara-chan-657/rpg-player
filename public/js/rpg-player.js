@@ -1000,7 +1000,7 @@ function keyDownHandler(evt) {
                     return;
                     break;
             }
-            if(checkStartMoveEvent()) {
+            if((evt.keyCode==37 || evt.keyCode==38 || evt.keyCode==39 || evt.keyCode==40) && checkStartMoveEvent()) {
                 scrollState = true;
             } else {
                 //一マス進めなかった場合
