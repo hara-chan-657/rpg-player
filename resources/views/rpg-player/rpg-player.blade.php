@@ -17,8 +17,12 @@
     @endcomponent
     <canvas id="viewCanvas"></canvas>
     <button id="playRpg" onclick="playRpg()">play</button>
-    <button id="openPrjDiv" onclick="openProjectsContainerDiv()">open</button>
-    <button id="hideMainChara" onclick="hideMainChara()">hideMainChara</button>
+    <!-- <button id="openPrjDiv" onclick="openProjectsContainerDiv()">open</button> -->
+    <!-- <button id="hideMainChara" onclick="hideMainChara()">hideMainChara</button> -->
+    <br><br><br>
+    <p id="eventSign">T：ツール表示</p>
+    <br><br>
+    <p id="eventSign">F：主人公非表示／表示切り替え</p>
     <!-- <p id="eventSign">●</p> -->
     <div id="projectsContainer">
         <p>確認コマンド：console.log(mapObj);</p>
