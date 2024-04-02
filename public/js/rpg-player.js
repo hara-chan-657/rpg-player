@@ -1826,7 +1826,12 @@ function drawObjectsWithMove() {
             }
 
             if (mapObjectsMove[i][4] != null) {
-                viewContext.drawImage(document.getElementById(mapObjectsMove[i][2]+"_"+index), (mapObjectsMove[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX)+movePxX[i], (mapObjectsMove[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY)+movePxY[i]);                
+                try {
+                    viewContext.drawImage(document.getElementById(mapObjectsMove[i][2]+"_"+index), (mapObjectsMove[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX)+movePxX[i], (mapObjectsMove[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY)+movePxY[i]);                
+                } catch(e) {
+                    //ムーブイベントの時、描画する何故か画像がロードできたりできなかったりする。できなくてもエラーにならない場合描画は続くので、一旦エラーは踏み潰す。。
+                    console.error( "エラー：", e.message );
+                }
             } else {
                 try {
                     viewContext.drawImage(document.getElementById(mapObjectsMove[i][2]+"_"+index), (mapObjectsMove[i][0]*32)+(viewCanvasHalfWidth-mainCharaPosX),            (mapObjectsMove[i][1]*32)+(viewCanvasHalfHeight-mainCharaPosY)           );
@@ -2183,6 +2188,7 @@ function loadImages() {
         '/rpg-player/public/image/heart.png',
         '/rpg-player/public/image/ikari.png',
         '/rpg-player/public/image/ase.png',
+        '/rpg-player/public/image/happy.png'
     ]
     for (var i=0; i<reactionArray.length; i++) {
         var imgObj = new Image();
@@ -3350,6 +3356,9 @@ function doEffect(effectData) {
                 break;
                 case '汗':
                 reactImage = reactionImgArray[3];
+                break;
+                case 'ハッピー':
+                reactImage = reactionImgArray[4];
                 break;
             }
 
