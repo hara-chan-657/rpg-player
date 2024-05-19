@@ -1877,6 +1877,8 @@ function drawObjectsWithMove() {
                     if (mapObjectsMove[i][10] != "") {
                         sound(mapObjectsMove[i][10]);
                     }
+                    //命令完了なので、ムーブチップ対象から除外する
+                    mapObjectsMove[i][4] = null;
                 }
 
                 // 次のインデックスのオーダーがなくて、かつ削除フラグがあった場合
@@ -3783,23 +3785,19 @@ function doTransition(trasitionDataObj) {
     //遷移専用の音を出す。
     sound('effect/sub_transition/stairs_1.wav');
 
-    //マップ変更前にオブジェクトデータをリセット
-    for (var i=0; i<mapObjects.length; i++) {
-        //データ範囲分実施
-        var ylength = currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object']['yCells'];
-        var xlength = currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object']['xCells'];
-        for(var k=0; k<ylength; k++){
-            for(var l=0; l<xlength; l++){
-                if (k==0 && l==0) {
-                    delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object']['leftTop'];
-                    delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object']['yCells'];
-                    delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object']['xCells'];
-                } else {
-                    delete currrentMapObj[Number(mapObjects[i][1])+Number(k)][Number(mapObjects[i][0])+Number(l)]['object'];
-                }
-            }
-        }
-    }
+    mapObjects = [];
+    mapObjectsMove = [];
+        //完了フラグを立てる
+        finishDrawMoveFlg = true;
+        //変数初期化
+        maxOrderNUm = 0;
+        orderIndex = 0;
+        mapObjectsMove = [];
+        targetChips = [];
+        movePxX = [];
+        movePxY = [];
+
+        startSoundFlg = true;
 
     //現在マップをクリア
     viewContext.clearRect(0, 0, viewCanvasWidth, viewCanvasHeight);
