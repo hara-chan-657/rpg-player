@@ -15,6 +15,10 @@
     @component('components.rpg-player-header')
 
     @endcomponent
+    <form name="" action="/rpg-player/public" method="post">
+        {{ csrf_field() }}
+        <input type="submit" value="プロジェクト選択画面へ戻る">
+    </form>
     <canvas id="viewCanvas"></canvas>
     <button id="playRpg" onclick="playRpg()">play</button>
     <!-- <button id="openPrjDiv" onclick="openProjectsContainerDiv()">open</button> -->

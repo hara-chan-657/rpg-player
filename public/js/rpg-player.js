@@ -64,6 +64,10 @@ var maptipObj;
 var events;
 //イベントインデックス
 var eventIndex = 0;
+//イベントグループインデックス
+var eventGroupIndex = 0;
+//イベントグループの数
+var eventGroupLength = 0;
 //実行中イベントタイプ（マップイベントorオブジェクトイベント）
 var doingEvtType = '';
 //会話用ウィンドウスタート位置X
@@ -261,10 +265,28 @@ function draw() {
 
         if (eventIndex+1 != events.length) {
             eventIndex++;
-            doEvents();
+            if(doingEvtType == 'map') {
+                doEvents();
+            } else {
+                doObjectEvents();
+            }
         } else {
         //なければ通常通りのdraw()
             // drawFlg = true;
+            //transitionとmoveの場合、グループインデックスを更新しない
+            //　transition：最後のグループ、最後のイベントの想定なので更新不要（更新しようとするとマップが切り替わってるためエラー）
+            //　move：関数内でgroupIndexを個別に更新する（updateEventGroupIndexでは話しかけたオブジェクトが移動してしまっている場合エラー）
+            //finishDrawMoveFlgを使ってるのがtransitionとmove
+            //updateEventGroupIndex();
+
+            //イベント群の最後にmoveの場合はupdateが行われないのでこのタイミングで明示的にtmpTriggerObjを削除する
+            for(let k in currrentMapObj) {
+                for(let l in currrentMapObj[k]) {
+                    if (currrentMapObj[k][l].hasOwnProperty('object') && currrentMapObj[k][l]['object'].hasOwnProperty('tmpTriggerObj')) {
+                        delete currrentMapObj[k][l]['object']['tmpTriggerObj'];//デリートしないと混在してしまう可能性
+                    }
+                }
+            }
             eventIndex = 0; 
         }
 
@@ -273,6 +295,27 @@ function draw() {
     // 点滅が終わったらオブジェクト削除
     if (delObjdrawCnt == 150) { //150は割と適当な数字（点滅の期間）
         delObjdrawCnt = 0;
+
+        //グループインデックス更新スキップのフラグを立てる
+        if(didMoveflg == true) {
+            //moveイベントを挟んでいた場合
+            //主人公は移動している（triggerCellは変わっている）可能性があるので、特定フラグがあるかないかで判定する
+            if(currrentMapObj[Number(mapObjects[delObjIndex][1])][Number(mapObjects[delObjIndex][0])]['object'].hasOwnProperty('tmpTriggerObj')) {
+                didDelObjFlg = true;
+            }
+        } else {
+            //moveイベントを挟んでいない場合
+            //主人公は移動している可能性がないので、イベント発動セルのシーケンス=マップオブジェクトのシーケンスかどうかで判断する
+            var triggerSeq = 999;
+            if(currrentMapObj[orgEvtCellY][orgEvtCellX].hasOwnProperty('object')){
+                triggerSeq = currrentMapObj[orgEvtCellY][orgEvtCellX]['object']['objSequence'];
+            }
+            var mapObjSeq = currrentMapObj[Number(mapObjects[delObjIndex][1])][Number(mapObjects[delObjIndex][0])]['object']['objSequence'];
+            if (triggerSeq == mapObjSeq) {
+                didDelObjFlg = true;
+            }
+        }
+
         //マップデータから削除
         var ylength = currrentMapObj[Number(mapObjects[delObjIndex][1])][Number(mapObjects[delObjIndex][0])]['object']['yCells'];
         var xlength = currrentMapObj[Number(mapObjects[delObjIndex][1])][Number(mapObjects[delObjIndex][0])]['object']['xCells'];
@@ -288,10 +331,16 @@ function draw() {
 
         if (eventIndex+1 != events.length) {
             eventIndex++;
-            doEvents();
+            if(doingEvtType == 'map') {
+                doEvents();
+            } else {
+                doObjectEvents();
+            }
         } else {
         //なければ通常通りのdraw()
             // drawFlg = true;
+            //グループインデックスを更新
+            updateEventGroupIndex();
             eventIndex = 0; 
         }
 
@@ -364,6 +413,8 @@ function keyDownHandler(evt) {
                             doObjectEvents();
                         }
                     } else {
+                        //グループインデックスを更新
+                        updateEventGroupIndex();
                         eventIndex = 0;
                         drawFlg = true;
                         draw(); //再描画開始
@@ -886,6 +937,8 @@ function keyDownHandler(evt) {
                         }
                     } else {
                         effectFlg = false; //フラグはここで戻す
+                        //グループインデックスを更新
+                        updateEventGroupIndex();
                         eventIndex = 0;
                         if (drawFlg) return; //描画中の場合はここでストップ（再描画で加速しない様に）
                         drawFlg = true;
@@ -898,8 +951,16 @@ function keyDownHandler(evt) {
             switch (evt.keyCode) {
                 case 65: //Aボタン
 
+                    //ここは一回目のシーンイベント
                     var talk = sceneEvts[sceneEvtsIndex]['talkContent'];
-                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];
+                    
+                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty('wipeSrc')) {
+                        var wipe = sceneEvts[sceneEvtsIndex]['wipeSrc'];   
+                    }
+
+                    if (sceneEvts[sceneEvtsIndex].hasOwnProperty("shakeType") || sceneEvts[sceneEvtsIndex].hasOwnProperty("sound")) {
+                        doSceneEffectFlg = true;
+                    }
                     doTalk(talk, wipe);
 
                 break;
@@ -1034,6 +1095,81 @@ function playBgm(type) {
 
 }
 
+//グループインデックスを更新
+//イベント群が終了時にコールする。
+//マップ情報のgroupIndexを直接更新し、イベント発生時にマップ情報のgroupIndexを毎回読み込む。
+function updateEventGroupIndex() {
+    if(didDelObjFlg){
+        //オブジェクトイベントで、オブジェクト自身が削除された場合（deleteObjイベント、move削除オプション、tool拾い）
+        //objectプロパティごと削除なので更新しない
+        //moveが最後のイベントだった場合は削除オプションで消されても、その後にこの関数自体呼ばれないため、問題なし
+        eventGroupIndex = 0;
+        eventGroupLength = 0;
+
+    } else if(didMoveflg){
+        //オブジェクトイベント群の途中でmoveを挟んだ場合
+        //話しかけたオブジェクトが移動している可能性があるので、フラグから更新対象のセルを特定してインデックスを更新する
+        //特定用のフラグも削除する
+        for(let k in currrentMapObj) {
+            for(let l in currrentMapObj[k]) {
+                if (currrentMapObj[k][l].hasOwnProperty('object') && currrentMapObj[k][l]['object'].hasOwnProperty('tmpTriggerObj')) {
+                    if(eventGroupIndex+1 == eventGroupLength){
+                        //最後のイベントだった場合
+                        currrentMapObj[k][l]['object'].events.groupIndex = 0;
+                    }else{
+                        //途中のイベントだった場合
+                        currrentMapObj[k][l]['object'].events.groupIndex = eventGroupIndex+1;
+                    }
+                    delete currrentMapObj[k][l]['object']['tmpTriggerObj'];//デリートしないと混在してしまう可能性
+                }
+            }
+        }
+
+    } else if(eventGroupIndex+1 == eventGroupLength){
+        //最後のグループだった場合0にリセット
+        eventGroupIndex = 0;
+        eventGroupLength = 0;
+        //遷移の時はcurrrentMapObjが変わってしまっているため変更するとエラーになるのとそもそも変更不要なのでreturn
+        if(transitionFlg) {
+            return;
+        }
+        if(doingEvtType == 'map') {
+            currrentMapObj[orgEvtCellY][orgEvtCellX].events.groupIndex = 0;
+        } else {
+            //オブジェクトの範囲全てのインデックスを更新する必要がある
+            var seq = currrentMapObj[orgEvtCellY][orgEvtCellX]['object']['objSequence'];
+            for(let k in currrentMapObj) {
+                for(let l in currrentMapObj[k]) {
+                    //繰り返しマップチップ
+                    if (currrentMapObj[k][l].hasOwnProperty('object') && currrentMapObj[k][l]['object']['objSequence'] == seq) {
+                        currrentMapObj[k][l]['object'].events.groupIndex = 0;
+                    }
+                }
+            }
+        }
+
+    } else {
+        //途中のグループだった場合+1
+        if(doingEvtType == 'map') {
+            //maptipObj.groupIndex = eventGroupIndex+1;
+            currrentMapObj[orgEvtCellY][orgEvtCellX].events.groupIndex = eventGroupIndex+1;
+        } else {
+            //オブジェクトの範囲全てのインデックスを更新する必要がある
+            var seq = currrentMapObj[orgEvtCellY][orgEvtCellX]['object']['objSequence'];
+            for(let k in currrentMapObj) {
+                for(let l in currrentMapObj[k]) {
+                    //繰り返しマップチップ
+                    if (currrentMapObj[k][l].hasOwnProperty('object') && currrentMapObj[k][l]['object']['objSequence'] == seq) {
+                        currrentMapObj[k][l]['object'].events.groupIndex = eventGroupIndex+1;
+                    }
+                }
+            }
+        }
+    }
+
+    didDelObjFlg = false;//フラグリセット
+    didMoveflg = false;//フラグリセット
+}
 
 //海のような、繰り返して動いているマップチップを描画する
 //マップチップタイプ6（マップ繰り返し）のマップチップを繰り返し描画する
@@ -1257,6 +1393,8 @@ function drawObjectAnimation(imageName, imgNum, cells, time) {
             //イベント終了だったら（オブジェクトアニメーション特有の分岐、普通はkeyEventHandlerでやるべきこと）
             if (eventIndex+1 == events.length) {
                 effectFlg = false; //フラグはここで戻す
+                //グループインデックスを更新
+                updateEventGroupIndex();
                 eventIndex = 0;
                 console.log("最後のイベント：オブジェクトアニメーション終了、動き始めれます。");
             }
@@ -1290,6 +1428,8 @@ function drawFlashAnimation(imageName, cells) {
         //イベント終了だったら（フラッシュアニメーション特有の分岐、普通はkeyEventHandlerでやるべきこと）
         if (eventIndex+1 == events.length) {
             effectFlg = false; //フラグはここで戻す
+            //グループインデックスを更新
+            updateEventGroupIndex();
             eventIndex = 0;
             console.log("最後のイベント：フラッシュアニメーション終了、動き始めれます。");
         }
@@ -1422,7 +1562,10 @@ var maxOrderNUm = 0;
 var targetChips = [];
 var tmpCount = 1;
 var startSoundFlg = true; //一回ならしたらfalseにする
+var didMoveflg = false;//グループインデックス更新用に使用
 function doMove(moveData) {
+
+    //トリガーセルの情報
 
     //まずは開始サウンドを鳴らす
     if (startSoundFlg) {
@@ -1483,6 +1626,16 @@ function doMove(moveData) {
 
             //newMoveObj
             if (chipData.hasOwnProperty('newMoveObj')) {
+                //loadSpecial時にロードする情報で足りないものをここで設定（範囲分のコピーは移動完了後）
+                var imgEle = document.getElementById(chipData['newMoveObj']['charaName']+"_1");
+                var xCells = imgEle.naturalWidth/mapTipLength;
+                var yCells = imgEle.naturalHeight/mapTipLength;
+                chipData['newMoveObj']['objSequence'] = currentMapObjSequence;
+                currentMapObjSequence++;
+                chipData['newMoveObj']['leftTop'] = true;//これは後移動完了後に削除して再度登録し直すが、忘れないようこの時点でたす
+                chipData['newMoveObj']['xCells'] = xCells;
+                chipData['newMoveObj']['yCells'] = yCells;
+                //追加
                 target.push(chipData['newMoveObj']);
             } else {
                 target.push(null);
@@ -1598,9 +1751,33 @@ function doMove(moveData) {
         }
     }
 
+    //イベント発動セルのオブジェクトシーケンスを取得（オブジェクトイベント発動（話かけ）であれば必ずあるはず）
+    var triggerSeq = 999;
+    if(currrentMapObj[orgEvtCellY][orgEvtCellX].hasOwnProperty('object')){
+        triggerSeq = currrentMapObj[orgEvtCellY][orgEvtCellX]['object']['objSequence'];
+    }
+
     //既存のキャラオブジェクトでループ
     //ターゲットチップとかぶる場合、移動対象とみなす
     for (var i=0; i<mapObjects.length; i++) {
+        //（グループ内初回move用）話しかけたオブジェクトに対しては移動先特定用のフラグを新たに設定（グループインデック更新に使用）
+        //　→→話しかけたオブジェクト=トリガーセル（Aボタン)に絶対なるはず。侵入では侵入したセルがトリガーセルなので
+
+        //mapObjectsのオブジェクトシーケンスを取得
+        var mapObjSeq = currrentMapObj[mapObjects[i][1]][mapObjects[i][0]]['object']['objSequence'];
+        
+        //トリガーセルのオブジェクトシーケンスと一致する場合、特定用のフラグを設定
+        //オブジェクトの範囲全体に設定する必要がある
+        if (didMoveflg == false && triggerSeq == mapObjSeq) {
+            for(let k in currrentMapObj) {
+                for(let l in currrentMapObj[k]) {
+                    if (currrentMapObj[k][l].hasOwnProperty('object') && currrentMapObj[k][l]['object']['objSequence'] == mapObjSeq){
+                        currrentMapObj[k][l]['object']['tmpTriggerObj'] = true;
+                    }
+                }
+            }
+            didMoveflg = true;            
+        }
         
         var incldFlg = false;
         var targetIndex = 0;
@@ -1884,6 +2061,10 @@ function drawObjectsWithMove() {
                 // 次のインデックスのオーダーがなくて、かつ削除フラグがあった場合
                 if (targetChips[targetIndex][2][orderIndex+1] == undefined && mapObjectsMove[i][5] == true){
 
+                    if (mapObjectsMove[i][6].hasOwnProperty('tmpTriggerObj')){
+                        didDelObjFlg = true;//特定フラグ持ちを削除の場合、グループインデックス更新スキップフラグを立てる
+                    }
+
                     //mapObjects（Move）から削除する
                     mapObjectsMove.splice(i,1);
                     mapObjects.splice(i,1);
@@ -1966,13 +2147,13 @@ function drawObjectsWithMove() {
 
                         if (k==0 && l==0) {
                         //オブジェクトの左上は、左上フラグとかの情報を追加する
-                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object'] = mapObjectsMove[i][6];
+                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object'] = JSON.parse(JSON.stringify(mapObjectsMove[i][6]));//一度文字列にしてパースしてから渡すことで参照が切れる
                             currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object']['leftTop'] = true;
                             currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object']['xCells'] = xlength;
                             currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object']['yCells'] = ylength;
                         } else {
                         //それ以外の範囲は単純にデータコピー
-                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object'] = mapObjectsMove[i][6];
+                            currrentMapObj[Number(mapObjectsMove[i][1])+Number(k)][Number(mapObjectsMove[i][0])+Number(l)]['object'] = JSON.parse(JSON.stringify(mapObjectsMove[i][6]));//一度文字列にしてパースしてから渡すことで参照が切れる
                         }
                     }
                 }
@@ -2079,14 +2260,20 @@ function doChangeMainChara(changeMainCharaData) {
     //次のイベントがあれば次のイベント
     if (eventIndex+1 != events.length) {
         eventIndex++;
-        doEvents();
+        if(doingEvtType == 'map') {
+            doEvents();
+        } else {
+            doObjectEvents();
+        }
     } else {
     //なければ通常通りのdraw()
+        //グループインデックスを更新
+        updateEventGroupIndex();
+        eventIndex = 0; 
         if (!drawFlg) {
             drawFlg = true;
             draw();
         }
-        eventIndex = 0; 
     }
 
 }
@@ -2220,7 +2407,7 @@ function showStartProject() {
     //スタートプロジェクトの読み込み
     var startMap = projectDataObj['startMap'];
     currentMapImg = document.getElementById(startMap);
-    currrentMapObj =  mapObj[startMap];
+    currrentMapObj =  JSON.parse(JSON.stringify(mapObj[startMap]));//参照渡しを切らないと遷移するたびにオブジェクトが増える、、
 
     //表示キャンバスに描画
     currentMapImgWidth = currentMapImg.naturalWidth;
@@ -2840,15 +3027,18 @@ function checkStartMoveEvent() {
 
 
 //オブジェクトをチェックする（Aボタンのみ)
+//トリガーをチェックする
+var triggerCellY; //イベントグループ更新用にグローバル変数を用意。checkObjectとcheckTriggerで使用。
+var triggerCellX; //イベントグループ更新用にグローバル変数を用意。checkObjectとcheckTriggerで使用。
 function checkObject(direction) {
     switch (direction) {
         case 'left':
             //マップ外でないかチェック
             if (mainCharaPosX == 0) return false;
             //オブジェクトがあるかチェック
-            var nextCellY = mainCharaPosY/mapTipLength;
-            var nextCellX = mainCharaPosX/mapTipLength-1;
-            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            triggerCellY = mainCharaPosY/mapTipLength;
+            triggerCellX = mainCharaPosX/mapTipLength-1;
+            var nextCell = currrentMapObj[triggerCellY][triggerCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
             } else {
@@ -2859,9 +3049,9 @@ function checkObject(direction) {
             //マップ外でないかチェック 
             if (mainCharaPosY == 0) return false;
             //オブジェクトがあるかチェック
-            var nextCellY = mainCharaPosY/mapTipLength-1;
-            var nextCellX = mainCharaPosX/mapTipLength;
-            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            triggerCellY = mainCharaPosY/mapTipLength-1;
+            triggerCellX = mainCharaPosX/mapTipLength;
+            var nextCell = currrentMapObj[triggerCellY][triggerCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
             } else {
@@ -2872,9 +3062,9 @@ function checkObject(direction) {
             //マップ外でないかチェック 
             if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
             //オブジェクトがあるかチェック
-            var nextCellY = mainCharaPosY/mapTipLength;
-            var nextCellX = mainCharaPosX/mapTipLength+1;
-            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            triggerCellY = mainCharaPosY/mapTipLength;
+            triggerCellX = mainCharaPosX/mapTipLength+1;
+            var nextCell = currrentMapObj[triggerCellY][triggerCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
             } else {
@@ -2885,9 +3075,9 @@ function checkObject(direction) {
             //マップ外でないかチェック 
             if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
             //オブジェクトがあるかチェック
-            var nextCellY = mainCharaPosY/mapTipLength+1;
-            var nextCellX = mainCharaPosX/mapTipLength;
-            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            triggerCellY = mainCharaPosY/mapTipLength+1;
+            triggerCellX = mainCharaPosX/mapTipLength;
+            var nextCell = currrentMapObj[triggerCellY][triggerCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
             } else {
@@ -2899,9 +3089,9 @@ function checkObject(direction) {
             if (mainCharaPosX == 0) return false;
             if (mainCharaPosY == 0) return false;
             //オブジェクトがあるかチェック
-            var nextCellY = mainCharaPosY/mapTipLength-1;
-            var nextCellX = mainCharaPosX/mapTipLength-1;
-            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            triggerCellY = mainCharaPosY/mapTipLength-1;
+            triggerCellX = mainCharaPosX/mapTipLength-1;
+            var nextCell = currrentMapObj[triggerCellY][triggerCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
             } else {
@@ -2913,9 +3103,9 @@ function checkObject(direction) {
             if (mainCharaPosX == 0) return false;
             if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
             //オブジェクトがあるかチェック
-            var nextCellY = mainCharaPosY/mapTipLength+1;
-            var nextCellX = mainCharaPosX/mapTipLength-1;
-            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            triggerCellY = mainCharaPosY/mapTipLength+1;
+            triggerCellX = mainCharaPosX/mapTipLength-1;
+            var nextCell = currrentMapObj[triggerCellY][triggerCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
             } else {
@@ -2927,9 +3117,9 @@ function checkObject(direction) {
             if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
             if (mainCharaPosY == 0) return false;
             //オブジェクトがあるかチェック
-            var nextCellY = mainCharaPosY/mapTipLength-1;
-            var nextCellX = mainCharaPosX/mapTipLength+1;
-            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            triggerCellY = mainCharaPosY/mapTipLength-1;
+            triggerCellX = mainCharaPosX/mapTipLength+1;
+            var nextCell = currrentMapObj[triggerCellY][triggerCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
             } else {
@@ -2941,9 +3131,9 @@ function checkObject(direction) {
             if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
             if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
             //オブジェクトがあるかチェック
-            var nextCellY = mainCharaPosY/mapTipLength+1;
-            var nextCellX = mainCharaPosX/mapTipLength+1;
-            var nextCell = currrentMapObj[nextCellY][nextCellX];
+            triggerCellY = mainCharaPosY/mapTipLength+1;
+            triggerCellX = mainCharaPosX/mapTipLength+1;
+            var nextCell = currrentMapObj[triggerCellY][triggerCellX];
             if(nextCell.hasOwnProperty('object')) {
                 return nextCell['object'];
             } else {
@@ -2956,7 +3146,6 @@ function checkObject(direction) {
     }
 }
 
-//トリガーをチェックする
 function checkTrigger(trigger, direction) {
     switch (trigger) {
         case 'Aボタン':
@@ -2965,9 +3154,9 @@ function checkTrigger(trigger, direction) {
                     //マップ外でないかチェック
                     if (mainCharaPosX == 0) return false;
                     //トリガーAボタンどうかチェック
-                    var nextCellY = mainCharaPosY/mapTipLength;
-                    var nextCellX = mainCharaPosX/mapTipLength-1;
-                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    triggerCellY = mainCharaPosY/mapTipLength;
+                    triggerCellX = mainCharaPosX/mapTipLength-1;
+                    var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
                             return nextCell['events'];
@@ -2980,9 +3169,9 @@ function checkTrigger(trigger, direction) {
                     //マップ外でないかチェック 
                     if (mainCharaPosY == 0) return false;
                     //トリガーAボタンどうかチェック
-                    var nextCellY = mainCharaPosY/mapTipLength-1;
-                    var nextCellX = mainCharaPosX/mapTipLength;
-                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    triggerCellY = mainCharaPosY/mapTipLength-1;
+                    triggerCellX = mainCharaPosX/mapTipLength;
+                    var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
                             return nextCell['events'];
@@ -2995,9 +3184,9 @@ function checkTrigger(trigger, direction) {
                     //マップ外でないかチェック 
                     if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
                     //トリガーAボタンどうかチェック
-                    var nextCellY = mainCharaPosY/mapTipLength;
-                    var nextCellX = mainCharaPosX/mapTipLength+1;
-                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    triggerCellY = mainCharaPosY/mapTipLength;
+                    triggerCellX = mainCharaPosX/mapTipLength+1;
+                    var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
                             return nextCell['events'];
@@ -3010,9 +3199,9 @@ function checkTrigger(trigger, direction) {
                     //マップ外でないかチェック 
                     if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
                     //トリガーAボタンどうかチェック
-                    var nextCellY = mainCharaPosY/mapTipLength+1;
-                    var nextCellX = mainCharaPosX/mapTipLength;
-                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    triggerCellY = mainCharaPosY/mapTipLength+1;
+                    triggerCellX = mainCharaPosX/mapTipLength;
+                    var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
                             return nextCell['events'];
@@ -3026,9 +3215,9 @@ function checkTrigger(trigger, direction) {
                     if (mainCharaPosX == 0) return false;
                     if (mainCharaPosY == 0) return false;
                     //トリガーAボタンどうかチェック
-                    var nextCellY = mainCharaPosY/mapTipLength-1;
-                    var nextCellX = mainCharaPosX/mapTipLength-1;
-                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    triggerCellY = mainCharaPosY/mapTipLength-1;
+                    triggerCellX = mainCharaPosX/mapTipLength-1;
+                    var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
                             return nextCell['events'];
@@ -3042,9 +3231,9 @@ function checkTrigger(trigger, direction) {
                     if (mainCharaPosX == 0) return false;
                     if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
                     //トリガーAボタンどうかチェック
-                    var nextCellY = mainCharaPosY/mapTipLength+1;
-                    var nextCellX = mainCharaPosX/mapTipLength-1;
-                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    triggerCellY = mainCharaPosY/mapTipLength+1;
+                    triggerCellX = mainCharaPosX/mapTipLength-1;
+                    var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
                             return nextCell['events'];
@@ -3058,9 +3247,9 @@ function checkTrigger(trigger, direction) {
                     if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
                     if (mainCharaPosY == 0) return false;
                     //トリガーAボタンどうかチェック
-                    var nextCellY = mainCharaPosY/mapTipLength-1;
-                    var nextCellX = mainCharaPosX/mapTipLength+1;
-                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    triggerCellY = mainCharaPosY/mapTipLength-1;
+                    triggerCellX = mainCharaPosX/mapTipLength+1;
+                    var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
                             return nextCell['events'];
@@ -3074,9 +3263,9 @@ function checkTrigger(trigger, direction) {
                     if (mainCharaPosX+mapTipLength == currentMapImgWidth) return false;
                     if (mainCharaPosY+mapTipLength == currentMapImgHeight) return false;
                     //トリガーAボタンどうかチェック
-                    var nextCellY = mainCharaPosY/mapTipLength+1;
-                    var nextCellX = mainCharaPosX/mapTipLength+1;
-                    var nextCell = currrentMapObj[nextCellY][nextCellX];
+                    triggerCellY = mainCharaPosY/mapTipLength+1;
+                    triggerCellX = mainCharaPosX/mapTipLength+1;
+                    var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                     if(nextCell.hasOwnProperty('trigger')) {
                         if(nextCell['trigger'] == 'Aボタン') {
                             return nextCell['events'];
@@ -3093,9 +3282,9 @@ function checkTrigger(trigger, direction) {
 
         case '進入':
                 //トリガー進入かどうかチェック
-                var nextCellY = mainCharaPosY/mapTipLength;
-                var nextCellX = mainCharaPosX/mapTipLength;
-                var nextCell = currrentMapObj[nextCellY][nextCellX];
+                triggerCellY = mainCharaPosY/mapTipLength;
+                triggerCellX = mainCharaPosX/mapTipLength;
+                var nextCell = currrentMapObj[triggerCellY][triggerCellX];
                 if(nextCell.hasOwnProperty('trigger')) {
                     if(nextCell['trigger'] == '進入') {
                         return nextCell['events'];
@@ -3110,68 +3299,101 @@ function checkTrigger(trigger, direction) {
 }
 
 //マップチップに設定されたオブジェクトのイベントを実行する
+var orgEvtCellX;//イベントが発動した時のセル（イベント発動時からずっと固定））
+var orgEvtCellY;//イベントが発動した時のセル（イベント発動時からずっと固定）
 function doObjectEvents() {
+
+    //初回イベント発生時、発生中のセルを固定する
+    if(eventIndex == 0) {
+        orgEvtCellX = triggerCellX;
+        orgEvtCellY = triggerCellY;
+    }
+
     //オブジェクトの種類を取得
     var objName = maptipObj['objName'];
     switch (objName) {
         case 'character':
+
+            //イベントグループインデックスは初期値0。更新はイベント終了のタイミングで実行。
+
+            //チップのグループインデックスを取得
+            eventGroupIndex = Number(maptipObj.events.groupIndex);
+
+            //イベントグループの数を取得
+            while(maptipObj['events'].hasOwnProperty(eventGroupLength)) {
+                eventGroupLength++;
+                if(eventGroupLength == 100){
+                    alert("エラー：グループインデックスが100を超えました");
+                    break;
+                }
+            }
+
             //イベントのキーとキーインデックスの取得
-            events = Object.keys(maptipObj['events']);
+            events = Object.keys(maptipObj['events'][eventGroupIndex]);
             var evtFullName = events[eventIndex];
+            //イベントのキーとキーインデックスの取得
+            if(events[eventIndex] == undefined){
+                alert("空のイベントグループが設定されている可能性があります。");
+            }
             var index = evtFullName.indexOf('_');
             var evtName = evtFullName.substr(index+1);
             switch (evtName) {
                 case 'talk':
-                    var talkContent =  maptipObj['events'][evtFullName]['talkContent'];
-                    if (maptipObj['events'][evtFullName].hasOwnProperty('wipe')) {
-                        var wipe =  maptipObj['events'][evtFullName]['wipe'];
+                    var talkContent =  maptipObj['events'][eventGroupIndex][evtFullName]['talkContent'];
+                    if (maptipObj['events'][eventGroupIndex][evtFullName].hasOwnProperty('wipe')) {
+                        var wipe =  maptipObj['events'][eventGroupIndex][evtFullName]['wipe'];
                     }
                     doTalk(talkContent, wipe);
                 break;
                 case 'question':
-                    var questionContent =  maptipObj['events'][evtFullName]['questionContent'];
-                    if (maptipObj['events'][evtFullName].hasOwnProperty('wipe')) {
-                        var wipe =  maptipObj['events'][evtFullName]['wipe'];
+                    var questionContent =  maptipObj['events'][eventGroupIndex][evtFullName]['questionContent'];
+                    if (maptipObj['events'][eventGroupIndex][evtFullName].hasOwnProperty('wipe')) {
+                        var wipe =  maptipObj['events'][eventGroupIndex][evtFullName]['wipe'];
                     }
                     doQuestion(questionContent, wipe);
                 break;
                 case 'transition':
-                    var trasitionDataObj =  maptipObj['events'][evtFullName];
+                    var trasitionDataObj =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doTransition(trasitionDataObj);
                 break;
                 case 'battle':
-                    var battleData =  maptipObj['events'][evtFullName];
+                    var battleData =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doBattle(battleData);
                 break;
                 case 'tool':
-                    var toolData =  maptipObj['events'][evtFullName];
+                    var toolData =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doTool(toolData);
                 case 'effect':
-                    var effectData =  maptipObj['events'][evtFullName];
+                    var effectData =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doEffect(effectData);
                 break;
                 case 'move':
-                    var moveData =  maptipObj['events'][evtFullName];
+                    var moveData =  maptipObj['events'][eventGroupIndex][evtFullName];
+                    //doMove実行前に、グループ最後のイベントの場合事前にgroupIndexを更新する必要がある。実行後はオブジェクトが移動するため。
+                    if (eventIndex+1 == events.length) {
+                        //グループインデックスを更新
+                        updateEventGroupIndex();
+                    }
                     doMove(moveData);
                 break;
                 case 'scene':
-                    var sceneData =  maptipObj['events'][evtFullName];
+                    var sceneData =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doScene(sceneData);
                 break;
                 case 'changeMainChara':
-                    var changeMainCharaData =  maptipObj['events'][evtFullName];
+                    var changeMainCharaData =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doChangeMainChara(changeMainCharaData);
                 break;
                 case 'follow':
-                    var followData =  maptipObj['events'][evtFullName];
+                    var followData =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doFollow(followData);
                 break;
                 case 'deleteObject':
-                    var delObjData =  maptipObj['events'][evtFullName];
+                    var delObjData =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doDeleteObject(delObjData);
                 break;
                 case 'layDown':
-                    var layDownData =  maptipObj['events'][evtFullName];
+                    var layDownData =  maptipObj['events'][eventGroupIndex][evtFullName];
                     doLayDown(layDownData);
                 break;
             }  
@@ -3236,6 +3458,9 @@ function doObjectEvents() {
                     mapObjects.splice(i,1);
                 }
             }
+
+            //オブジェクト削除フラグを更新
+            didDelObjFlg = true;
             
         break;
     } 
@@ -3243,65 +3468,93 @@ function doObjectEvents() {
 
 //マップチップに設定されたイベントを実行する
 function doEvents() {
+
+    //初回イベント発生時、発生中のセルを固定する
+    if(eventIndex == 0) {
+        orgEvtCellX = triggerCellX;
+        orgEvtCellY = triggerCellY;
+    }
+
+    //イベントグループインデックスは初期値0。更新はイベント終了のタイミングで実行。
+
+    //イベントグループの数を取得
+    while(maptipObj.hasOwnProperty(eventGroupLength)) {
+        eventGroupLength++;
+        if(eventGroupLength == 100){
+            alert("エラー：グループインデックスが100を超えました");
+            break;
+        }
+    }
+
+    //チップのグループインデックスを取得
+    eventGroupIndex = Number(maptipObj.groupIndex);
+    events = Object.keys(maptipObj[eventGroupIndex]);
     //イベントのキーとキーインデックスの取得
-    events = Object.keys(maptipObj);
+    if(events[eventIndex] == undefined){
+        alert("空のイベントグループが設定されている可能性があります。");
+    }
     //イベントネームを取得
     var evtFullName = events[eventIndex];
     var index = evtFullName.indexOf('_');
     var evtName = evtFullName.substr(index+1);
     switch (evtName) {
         case 'talk':
-            var talkContent =  maptipObj[evtFullName]['talkContent'];
-            if (maptipObj[evtFullName].hasOwnProperty('wipe')) {
-                var wipe =  maptipObj[evtFullName]['wipe'];
+            var talkContent =  maptipObj[eventGroupIndex][evtFullName]['talkContent'];
+            if (maptipObj[eventGroupIndex][evtFullName].hasOwnProperty('wipe')) {
+                var wipe =  maptipObj[eventGroupIndex][evtFullName]['wipe'];
             }
             doTalk(talkContent, wipe);
         break;
         case 'question':
-            var questionContent =  maptipObj[evtFullName]['questionContent'];
-            if (maptipObj[evtFullName].hasOwnProperty('wipe')) {
-                var wipe =  maptipObj[evtFullName]['wipe'];
+            var questionContent =  maptipObj[eventGroupIndex][evtFullName]['questionContent'];
+            if (maptipObj[eventGroupIndex][evtFullName].hasOwnProperty('wipe')) {
+                var wipe =  maptipObj[eventGroupIndex][evtFullName]['wipe'];
             }
             doQuestion(questionContent, wipe);
         break;
         case 'transition':
-            var trasitionDataObj =  maptipObj[evtFullName];
+            var trasitionDataObj =  maptipObj[eventGroupIndex][evtFullName];
             doTransition(trasitionDataObj);
         break;
         case 'battle':
-            var battleData =  maptipObj[evtFullName];
+            var battleData =  maptipObj[eventGroupIndex][evtFullName];
             doBattle(battleData);
         break;
         case 'tool':
-            var toolData =  maptipObj[evtFullName];
+            var toolData =  maptipObj[eventGroupIndex][evtFullName];
             doTool(toolData);
         break;
         case 'effect':
-            var effectData =  maptipObj[evtFullName];
+            var effectData =  maptipObj[eventGroupIndex][evtFullName];
             doEffect(effectData);
         break;
         case 'move':
-            var moveData =  maptipObj[evtFullName];
+            var moveData =  maptipObj[eventGroupIndex][evtFullName];
+            //doMove実行前に、グループ最後のイベントの場合事前にgroupIndexを更新する必要がある。実行後はオブジェクトが移動するため。
+            if (eventIndex+1 == events.length) {
+                //グループインデックスを更新
+                updateEventGroupIndex();
+            }
             doMove(moveData);
         break;
         case 'scene':
-            var sceneData =  maptipObj[evtFullName];
+            var sceneData =  maptipObj[eventGroupIndex][evtFullName];
             doScene(sceneData);
         break;
         case 'changeMainChara':
-            var changeMainCharaData =  maptipObj[evtFullName];
+            var changeMainCharaData =  maptipObj[eventGroupIndex][evtFullName];
             doChangeMainChara(changeMainCharaData);
         break;
         case 'follow':
-            var followData =  maptipObj[evtFullName];
+            var followData =  maptipObj[eventGroupIndex][evtFullName];
             doFollow(followData);
         break;
         case 'deleteObject':
-            var delObjData =  maptipObj[evtFullName];
+            var delObjData =  maptipObj[eventGroupIndex][evtFullName];
             doDeleteObject(delObjData);
         break;
         case 'layDown':
-            var layDownData =  maptipObj[evtFullName];
+            var layDownData =  maptipObj[eventGroupIndex][evtFullName];
             doLayDown(layDownData);
         break;
     }
@@ -3329,6 +3582,8 @@ function doEffect(effectData) {
             //イベント終了だったら（シェイクアニメーション特有の分岐、普通はkeyEventHandlerでやるべきこと）
             if (eventIndex+1 == events.length) {
                 effectFlg = false; //フラグはここで戻す
+                //グループインデックスを更新
+                updateEventGroupIndex();
                 eventIndex = 0;
                 console.log("最後のイベント：シェイクアニメーション終了、動き始めれます。");
                 drawFlg = true;
@@ -3805,7 +4060,7 @@ function doTransition(trasitionDataObj) {
     //遷移先のマップ画像とマップオブジェクトを取得
     var trasitionMap = trasitionDataObj['transitionMap'];
     currentMapImg = document.getElementById(trasitionMap);
-    currrentMapObj =  mapObj[trasitionMap];
+    currrentMapObj = JSON.parse(JSON.stringify(mapObj[trasitionMap]))//参照渡しを切らないと遷移するたびにオブジェクトが増える、、
 
     //遷移先マップを表示キャンバスに描画
     currentMapImgWidth = currentMapImg.naturalWidth;
@@ -3839,6 +4094,11 @@ function doTransition(trasitionDataObj) {
     //遷移先で再描画開始
     //遷移前に描画を止めていない場合（進入での遷移）は、drawを呼ばない（呼ぶと二重に呼ばれてキャラの動きは倍速になる）
     if (!drawFlg) { //ここが重要
+        //グループインデックスを更新
+        //※遷移の場合、必ず最後のグループ、最後のイベントにするはず
+        //updateEventGroupIndexを呼んでも問題はないはずだが、確実に0にするようベタがき
+        eventGroupIndex = 0;
+        eventGroupLength = 0;
         eventIndex = 0; //イベントインデックスは、遷移するたびに0に戻す（次のマップチップに移るため）
         drawFlg = true;
         draw();
@@ -3849,7 +4109,9 @@ function doTransition(trasitionDataObj) {
 // 特殊マップチップのロード
 // 初期表示と画面遷移時と、オブジェクト削除/追加時などにコールする
 // ここでは必要なデータをつめるだけ。描画の時に、ここでつめたデータをもとに、描画する。
+var currentMapObjSequence = 0; //現在マップに表示されるオブジェクトに付与していくシーケンス。グループインデックスの更新に使う。
 function loadSpecialMapChips() {
+    currentMapObjSequence = 0; //マップが変わるたびにまずはリセット
     mapRepeat = [];
     mapTurn = [];
     mapObjects = [];
@@ -3890,6 +4152,9 @@ function loadSpecialMapChips() {
 
             //キャラオブジェクト/ツールオブジェクト
             if (currrentMapObj[k][l].hasOwnProperty('object') == true) {
+
+                currrentMapObj[k][l]['object']['objSequence'] = currentMapObjSequence;
+                currentMapObjSequence++;
                 
                 switch (currrentMapObj[k][l]['object']['objName']) {
                     case 'character' :
@@ -3901,7 +4166,8 @@ function loadSpecialMapChips() {
                         var imgEle = document.getElementById(currrentMapObj[k][l]['object']['charaName']+"_1");
                         var xCells = imgEle.naturalWidth/mapTipLength;
                         var yCells = imgEle.naturalHeight/mapTipLength;
-                        var objData = currrentMapObj[k][l]['object'];
+                        // var objData = currrentMapObj[k][l]['object'];
+                        var objData = JSON.parse(JSON.stringify(currrentMapObj[k][l]['object']));//一度文字列にしてパースしてから渡すことで参照が切れる
                         for(var x=0; x<xCells; x++) {
                             for(var y=0; y<yCells; y++) {
                                 //左上のセルだった場合左上フラグ、範囲を設定
@@ -4145,6 +4411,8 @@ function doFollow(followData) {
         }
     } else {
     //次のイベントがない場合
+        //グループインデックスを更新
+        updateEventGroupIndex();
         eventIndex = 0;
         if (!drawFlg) {
             drawFlg = true;
@@ -4157,6 +4425,7 @@ function doFollow(followData) {
 
 //オブジェクトを削除する
 var delObjIndex = null;
+var didDelObjFlg = false;//グループインデックス更新用に使用
 function doDeleteObject(delObjData) {
     //delObjDataのXとYの位置からオブジェクトを削除する
 　　　//指定の位置にオブジェクトがなかった場合、エラー
@@ -4170,7 +4439,7 @@ function doDeleteObject(delObjData) {
         return;
     }
     if (!currrentMapObj[Number(delObjData.delY)][Number(delObjData.delX)]['object'].hasOwnProperty('leftTop')){
-        alert("左上のチップではありません[マップ]（"+delObjData.delX+":"+delObjData.delY+")");
+        alert("削除する対象は必ず左上のチップを選択してください！[マップ]（"+delObjData.delX+":"+delObjData.delY+")");
         return;
     }
     var exsist = false;
@@ -4195,6 +4464,11 @@ function doDeleteObject(delObjData) {
             }   
         }
     }
+
+    if (drawFlg) return; //描画中の場合はここでストップ（再描画で加速しない様に）
+    //再描画開始
+    drawFlg = true;
+    draw();
 
 }
 
@@ -4269,6 +4543,8 @@ function doLayDown(layDownData) {
             doObjectEvents();
         }
     } else {
+        //グループインデックスを更新
+        updateEventGroupIndex();
         eventIndex = 0;
     }
 
@@ -4366,10 +4642,6 @@ function nextTalk() {
 
             //フラグを戻す
             doSceneEffectFlg = false;
-                        sceneFlg = false;
-                        sceneEvts = [];
-                        sceneEvtsIndex = 0;
-                        sceneImg = null;
 
         } else {
 
@@ -4423,6 +4695,8 @@ function nextTalk() {
                                 doObjectEvents();
                             }
                         } else {
+                            //グループインデックスを更新
+                            updateEventGroupIndex();
                             eventIndex = 0;
                         }
                     } else {
@@ -4477,6 +4751,8 @@ function nextTalk() {
                             doObjectEvents();
                         }
                     } else {
+                        //グループインデックスを更新
+                        updateEventGroupIndex();
                         eventIndex = 0;
                     }
                 }
@@ -4500,6 +4776,8 @@ function nextTalk() {
                                 doObjectEvents();
                             }
                         } else {
+                            //グループインデックスを更新
+                            updateEventGroupIndex();
                             eventIndex = 0;
                         }
                     }, 1000);
@@ -4518,6 +4796,8 @@ function nextTalk() {
                 //イベントが無くなったら
                 //イベントが無くなったタイミングで進入フラグ（ツール使用イベントで使用）を初期化
                 enterFlg = false;
+                //グループインデックスを更新
+                updateEventGroupIndex();
                 //イベントインデックスを初期化
                 eventIndex = 0;
                 //イベントが無くなったタイミングで一歩戻るフラグがtrueの場合、一歩戻る指令を出す
